@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: crypto-signal-bot
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn main:app"
+    autoDeploy: true
+    envVars:
+      - key: TELEGRAM_TOKEN
+        value: "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
+      - key: CHAT_ID
+        value: "5398864436"
