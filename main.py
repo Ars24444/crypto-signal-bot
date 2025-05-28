@@ -1,4 +1,3 @@
-import os
 from flask import Flask
 from keep_alive import keep_alive
 from get_top_symbols import get_top_volatile_symbols
@@ -8,27 +7,26 @@ from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 import pandas as pd
 import datetime
+import os
 
-
+# Վերցնում ենք SECRET փոփոխականները
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = int(os.environ.get("CHAT_ID"))
 
 bot = Bot(token=TELEGRAM_TOKEN)
 app = Flask(__name__)
 
-
 @app.route('/')
 def home():
     return "I'm alive"
 
-
-@app.route('/run', methods=['GET'])
+@app.route('/run')
 def run_manual():
     try:
         send_signals()
-        return "Signal sent", 200
+        return "Signal sent"
     except Exception as e:
-        return f"Error occurred: {e}", 200
+        return f"Error occurred: {e}"
 
 
 def is_strong_move(df):
@@ -120,6 +118,5 @@ def send_signals():
         except Exception as e:
             print(f"Error analyzing {symbol}: {e}")
 
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+if __name__ == "__main__":
+    keep_alive()
