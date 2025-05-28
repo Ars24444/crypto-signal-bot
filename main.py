@@ -12,7 +12,7 @@ import os
 
 TELEGRAM_TOKEN = os.environ.get(
     "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs")
-CHAT_ID = int(os.environ.get("Chat_ID"))
+CHAT_ID = int(os.environ.get("CHAT_ID"))
 
 
 @app.route('/')
