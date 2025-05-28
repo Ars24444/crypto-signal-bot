@@ -117,6 +117,6 @@ def send_signals():
         except Exception as e:
             print(f"Error analyzing {symbol}: {e}")
 
-if name == '__main__':
+if __name__ == '__main__':
     keep_alive()
     app.run(host='0.0.0.0', port=8080)
