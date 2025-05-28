@@ -9,7 +9,6 @@ import pandas as pd
 import datetime
 import os
 
-# Վերցնում ենք SECRET փոփոխականները
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = int(os.environ.get("CHAT_ID"))
 
