@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from keep_alive import keep_alive
 from get_top_symbols import get_top_volatile_symbols
@@ -8,7 +9,6 @@ from ta.momentum import RSIIndicator
 import pandas as pd
 import datetime
 
-import os
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = int(os.environ.get("CHAT_ID"))
