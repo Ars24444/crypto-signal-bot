@@ -8,11 +8,11 @@ from ta.momentum import RSIIndicator
 import pandas as pd
 import datetime
 
-TELEGRAM_TOKEN = '7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs'
-CHAT_ID = 5398864436
+import os
 
-bot = Bot(token=TELEGRAM_TOKEN)
-app = Flask(__name__)
+TELEGRAM_TOKEN = os.environ.get(
+    "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs")
+CHAT_ID = int(os.environ.get("5398864436"))
 
 
 @app.route('/')
@@ -121,4 +121,3 @@ def send_signals():
 
 if __name__ == '__main__':
     keep_alive()
-    app.run(host='0.0.0.0', port=8080)
