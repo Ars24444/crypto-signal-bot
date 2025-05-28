@@ -22,13 +22,13 @@ def home():
     return "I'm alive"
 
 
-@app.route('/run')
+@app.route('/run', methods=['GET'])
 def run_manual():
     try:
         send_signals()
-        return "Signal sent"
+        return "Signal sent", 200
     except Exception as e:
-        return f"Error occurred: {e}"
+        return f"Error occurred: {e}", 200
 
 
 def is_strong_move(df):
