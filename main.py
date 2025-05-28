@@ -104,7 +104,7 @@ def send_signals():
 
     if not strong_symbols:
         from datetime import timedelta
-        now = datetime.datetime.now(datetime.timezone(timedelta(hours=4)))
+        now = datetime.datetime.now(timezone.utc) + timedelta(hours=4)
         message = f"[{now.strftime('%H:%M')}] No strong signals found."
         bot.send_message(chat_id=CHAT_ID, text=message)
         return
