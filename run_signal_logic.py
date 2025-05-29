@@ -23,11 +23,14 @@ def send_signals():
         print(f"Checking {symbol}")
         df = get_klines(symbol)
         if df is None or len(df) < 50:
+            print(f"{symbol} skipped due to insufficient data.")
             continue
 
         result = is_strong_signal(df)
         if not result:
+            print(f"{symbol} has no strong signal.")
             continue
+
 
         signal, rsi, ma10, ma30, entry = result
 
