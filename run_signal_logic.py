@@ -10,7 +10,7 @@ CHAT_ID = 5398864436
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-def get_top_volatile_symbols(limit=10):
+def get_top_volatile_symbols(limit=15):
     url = "https://api.binance.com/api/v3/ticker/24hr"
     response = requests.get(url)
     data = response.json()
@@ -61,9 +61,13 @@ def is_strong_signal(df):
 
 def send_signals():
     symbols = get_top_volatile_symbols(limit=15)
+    used_symbols = set()
     count = 0
 
     for symbol in symbols:
+        if symbol in used_symbols:
+            continue
+
         df = get_klines(symbol)
         if df is None or len(df) < 50:
             continue
@@ -89,6 +93,8 @@ TP2: {tp2}
 SL: {sl}"""
 
         bot.send_message(chat_id=CHAT_ID, text=message)
+
+        used_symbols.add(symbol)
         count += 1
         if count >= 8:
             break
