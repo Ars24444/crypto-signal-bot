@@ -10,9 +10,12 @@ def home():
 @app.route("/run")
 def run_manual():
     try:
-        send_signals()  
+        print("➡️ Entered /run route")
+        send_signals()
+        print("✅ Finished send_signals()")
         return "Started", 200
     except Exception as e:
+        print(f"❌ Error in /run route: {e}")
         return f"Error occurred: {e}", 500
 
 if __name__ == "__main__":
