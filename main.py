@@ -1,4 +1,5 @@
 from flask import Flask
+import threading
 from keep_alive import keep_alive
 from get_top_symbols import get_top_volatile_symbols
 from get_symbols import get_klines
@@ -22,10 +23,10 @@ def home():
 @app.route('/run')
 def run_manual():
     try:
-        send_signals()
-        return "Signal sent"
+        threading.Thread(target=send_signals).start()
+        return "Started", 200
     except Exception as e:
-        return f"Error occurred: {e}"
+        return f"Error occurred: {e}", 500
 
 
 def is_strong_move(df):
