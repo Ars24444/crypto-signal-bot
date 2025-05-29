@@ -100,5 +100,5 @@ SL: {sl}"""
             break
 
 
-        if count == 0:
-            print("No strong signals found")
+    if count == 0:
+        print("No strong signals found")
