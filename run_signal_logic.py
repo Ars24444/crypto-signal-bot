@@ -1,45 +1,26 @@
-import pandas as pd
-from get_symbols import get_klines
-from get_top_symbols import get_top_volatile_symbols
-from ta.trend import SMAIndicator
-from ta.momentum import RSIIndicator
+from utils import get_klines, get_top_volatile_symbols, is_strong_signal
 from telegram import Bot
+import os
 
-CHAT_ID = 5398864436
-TELEGRAM_TOKEN = '7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs'
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
+
 bot = Bot(token=TELEGRAM_TOKEN)
 
-def is_strong_signal(df):
-    sma10 = SMAIndicator(close=df['Close'], window=10).sma_indicator()
-    sma30 = SMAIndicator(close=df['Close'], window=30).sma_indicator()
-    rsi = RSIIndicator(close=df['Close'], window=14).rsi()
-
-    avg_volume = df['Volume'].iloc[-111:-1].mean()
-    current_volume = df['Volume'].iloc[-1]
-    last_ma10 = sma10.iloc[-1]
-    last_ma30 = sma30.iloc[-1]
-    last_rsi = rsi.iloc[-1]
-    price = df['Close'].iloc[-1]
-
-    long_condition = current_volume > 1.4 * avg_volume and last_ma10 > last_ma30 and last_rsi > 65
-    short_condition = current_volume > 1.4 * avg_volume and last_ma10 < last_ma30 and last_rsi < 35
-
-    if long_condition:
-        return "LONG", last_rsi, last_ma10, last_ma30, price
-    elif short_condition:
-        return "SHORT", last_rsi, last_ma10, last_ma30, price
-    else:
-        return None
-
 def send_signals():
-    symbols = get_top_volatile_symbols(limit=15)
+    print("Signal function started")
+
+    symbols = get_top_volatile_symbols(limit=30)
     used_symbols = set()
     count = 0
 
     for symbol in symbols:
+        if not symbol.endswith("USDT"):
+            continue
         if symbol in used_symbols:
             continue
 
+        print(f"Checking {symbol}")
         df = get_klines(symbol)
         if df is None or len(df) < 50:
             continue
@@ -56,7 +37,7 @@ def send_signals():
         entry_low = round(entry * 0.995, 4)
         entry_high = round(entry * 1.005, 4)
 
-        message = f"""{symbol} (1h)
+        message = f"""📊 {symbol} (1h)
 RSI: {rsi:.2f}
 MA10: {ma10:.2f}, MA30: {ma30:.2f}
 Signal: {signal}
@@ -66,6 +47,8 @@ TP2: {tp2}
 SL: {sl}"""
 
         bot.send_message(chat_id=CHAT_ID, text=message)
+        print(f"Sent signal for {symbol} ({signal})")
+
         used_symbols.add(symbol)
         count += 1
         if count >= 8:
