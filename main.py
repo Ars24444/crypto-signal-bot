@@ -99,12 +99,14 @@ def get_strong_symbols():
     return strong
 
 
+    if not strong_symbols:
+     from datetime import datetime, timedelta, timezone
+
 def send_signals():
     strong_symbols = get_strong_symbols()
 
     if not strong_symbols:
-        from datetime import timedelta
-        now = datetime.datetime.now(timezone.utc) + timedelta(hours=4)
+        now = datetime.now(timezone(timedelta(hours=4)))
         message = f"[{now.strftime('%H:%M')}] No strong signals found."
         bot.send_message(chat_id=CHAT_ID, text=message)
         return
@@ -115,8 +117,7 @@ def send_signals():
             if signal:
                 bot.send_message(chat_id=CHAT_ID, text=signal)
         except Exception as e:
-            print(f"Error analyzing {symbol}: {e}")
-
+            print(f"Error analyzing {symbol}: {e}")  
 if __name__ == '__main__':
     from keep_alive import keep_alive
     keep_alive()
