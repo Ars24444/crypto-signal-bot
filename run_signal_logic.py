@@ -36,15 +36,15 @@ def send_signals():
         sl = round(entry * (0.99 if signal == "LONG" else 1.01), 4)
         entry_low = round(entry * 0.995, 4)
         entry_high = round(entry * 1.005, 4)
-
-        message = f"{symbol} (1h)\\n" \
-                  f"RSI: {rsi:.2f}\\n" \
-                  f"MA10: {ma10:.2f}, MA30: {ma30:.2f}\\n" \
-                  f"Signal: {signal}\\n" \
-                  f"Entry: {entry_low} – {entry_high}\\n" \
-                  f"TP1: {tp1}\\n" \
-                  f"TP2: {tp2}\\n" \
-                  f"SL: {sl}"
+        
+        message = f"""📊 {symbol} (1h)
+        RSI: {rsi:.2f}
+        MA10: {ma10:.2f}, MA30: {ma30:.2f}
+        Signal: {signal}
+        Entry: {entry_low} – {entry_high}
+        TP1: {tp1}
+        TP2: {tp2}
+        SL: {sl}"""
 
         bot.send_message(chat_id=CHAT_ID, text=message)
         print(f"Sent signal for {symbol} ({signal})")
