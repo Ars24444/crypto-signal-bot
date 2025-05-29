@@ -10,7 +10,7 @@ def send_signals():
     try:
         print("Signal function started")
         
-        symbols = get_top_volatile_symbols(limit=30)
+        symbols = get_top_volatile_symbols(limit=60)
         used_symbols = set()
         count = 0
 
