@@ -62,8 +62,17 @@ def is_strong_signal(df):
         last_rsi = rsi.iloc[-1]
         price = close.iloc[-1]
 
-        long_condition = current_volume > 1.4 * avg_volume and last_ma10 > last_ma30 and last_rsi > 65
-        short_condition = current_volume > 1.4 * avg_volume and last_ma10 < last_ma30 and last_rsi < 35
+        long_condition = (
+            current_volume > 1.2 * avg_volume and
+            last_ma10 > last_ma30 and
+            last_rsi > 58
+        )
+
+        short_condition = (
+             current_volume > 1.2 * avg_volume and
+             last_ma10 < last_ma30 and
+             last_rsi < 42
+        ) 
 
         if long_condition:
             return "LONG", last_rsi, last_ma10, last_ma30, price
