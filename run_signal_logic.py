@@ -98,3 +98,7 @@ SL: {sl}"""
         count += 1
         if count >= 8:
             break
+
+
+if count == 0:
+        print("No strong signals found")
