@@ -1,4 +1,3 @@
-
 import requests
 import pandas as pd
 from ta.trend import SMAIndicator
@@ -65,6 +64,7 @@ def send_signals():
     count = 0
 
     for symbol in symbols:
+        print(f"Checking {symbol}")
         if symbol in used_symbols:
             continue
 
@@ -93,12 +93,12 @@ TP2: {tp2}
 SL: {sl}"""
 
         bot.send_message(chat_id=CHAT_ID, text=message)
+        print(f"Sent signal for {symbol}: {signal}")
 
         used_symbols.add(symbol)
         count += 1
         if count >= 8:
             break
-
 
     if count == 0:
         print("No strong signals found")
