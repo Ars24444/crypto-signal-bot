@@ -2,8 +2,8 @@ from utils import get_klines, get_top_volatile_symbols, is_strong_signal
 from telegram import Bot
 import os
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+TELEGRAM_TOKEN = '7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs'
+CHAT_ID = 5398864436
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
