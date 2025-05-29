@@ -57,7 +57,7 @@ SL: {sl}"""
 
         if count == 0:
             print("No strong signals found")
-            bot.send_message(chat_id=CHAT_ID, text="❌ No strong signals found on top 30 coins.")
+            bot.send_message(chat_id=CHAT_ID, text="❌ No strong signals found on top 60 coins.")
 
     except Exception as e:
         print(f"❌ ERROR in send_signals: {e}")
