@@ -1,5 +1,6 @@
 from flask import Flask
 import threading
+import os
 
 from run_signal_logic import send_signals  # ✅ bring signal logic from new file
 
@@ -16,8 +17,6 @@ def run_manual():
         return "Started", 200
     except Exception as e:
         return f"Error occurred: {e}", 500
-
-mport os
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
