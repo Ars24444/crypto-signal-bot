@@ -9,6 +9,10 @@ bot = Bot(token=TELEGRAM_TOKEN)
 def send_signals(force=False):
     try:
         print("Signal function started")
+
+        symbols = get_top_volatile_symbols(limit=100)
+        used_symbols = set()
+        count = 0
         
         for symbol in symbols:
             if not symbol.endswith("USDT"):
