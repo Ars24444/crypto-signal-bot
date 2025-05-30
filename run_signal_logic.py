@@ -9,7 +9,8 @@ bot = Bot(token=TELEGRAM_TOKEN)
 def send_signals(force=False):
     try:
         print("Signal function started")
-
+btc_df = get_data("BTCUSDT")
+btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-4]) / btc_df["close"].iloc[-4] * 100
         symbols = get_top_volatile_symbols(limit=100)
         used_symbols = set()
         count = 0
@@ -34,6 +35,12 @@ def send_signals(force=False):
                 continue
 
             signal, rsi, ma10, ma30, entry = result
+            
+            # If BTC is strongly rising, avoid weak SHORT entries
+            if signal == "SHORT" and btc_change_pct > 1:
+                if rsi > 30 or ma10 > ma30:
+                    print(f"⛔️ Skipping {symbol} SHORT due to BTC strong uptrend")
+                    continue
             tp1 = round(entry * (1.06 if signal == "LONG" else 0.94), 4)
             tp2 = round(entry * (1.1 if signal == "LONG" else 0.9), 4)
             sl = round(entry * (0.99 if signal == "LONG" else 1.01), 4)
