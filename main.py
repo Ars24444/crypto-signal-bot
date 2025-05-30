@@ -16,7 +16,7 @@ def run_manual():
         sys.stdout.flush()
 
         # Force mode on cron
-        send_signals(force=True)
+        send_signals()
 
         print("✅ Finished send_signals()")
         sys.stdout.flush()
