@@ -21,7 +21,7 @@ def send_signals():
                 continue
 
             print(f"Checking {symbol}")
-            df = get_klines(symbol)
+            df = get_data(symbol)
             if df is None or len(df) < 50:
                 print(f"{symbol} skipped due to insufficient data.")
                 continue
