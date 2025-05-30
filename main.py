@@ -12,14 +12,14 @@ def home():
 @app.route("/run")
 def run_manual():
     try:
-        print("➡️ Entered /run route")
+        print("🟡 Entered /run route")
         sys.stdout.flush()
 
-        send_signals()
+        # Force mode on cron
+        send_signals(force=True)
 
         print("✅ Finished send_signals()")
         sys.stdout.flush()
-
         return "Started", 200
     except Exception as e:
         print(f"❌ Error in /run route: {e}")
