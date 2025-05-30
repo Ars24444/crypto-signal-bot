@@ -1,4 +1,4 @@
-from utils import get_klines, get_top_volatile_symbols, is_strong_signal
+from utils import get_top_volatile_symbols, is_strong_signal
 from telegram import Bot
 import os
 
