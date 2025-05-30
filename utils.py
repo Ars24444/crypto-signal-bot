@@ -50,6 +50,7 @@ def get_top_volatile_symbols(limit=100):
 
         valid_symbols = get_binance_spot_symbols()
         df = df[df["symbol"].isin(valid_symbols)]
+        df = df[df["quoteVolume"] > 800000]
 
         df = df.sort_values(by=["quoteVolume", "priceChangePercent"], ascending=False)
         top_symbols = df.head(limit)["symbol"].tolist()
