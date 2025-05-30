@@ -6,7 +6,7 @@ TELEGRAM_TOKEN = '7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs'
 CHAT_ID = 5398864436
 
 bot = Bot(token=TELEGRAM_TOKEN)
-def send_signals():
+def send_signals(force=False):
     try:
         print("Signal function started")
         
@@ -26,10 +26,12 @@ def send_signals():
                 print(f"{symbol} skipped due to insufficient data.")
                 continue
 
-            result = is_strong_signal(df)
-            if not result:
-                print(f"{symbol} has no strong signal.")
-                continue
+           result = is_strong_signal(df)
+
+           if not result:
+               if not force:
+                   print(f"{symbol} has no strong signal.")
+                continue 
 
             signal, rsi, ma10, ma30, entry = result
             tp1 = round(entry * (1.06 if signal == "LONG" else 0.94), 4)
