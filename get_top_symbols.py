@@ -1,6 +1,6 @@
 import requests
 
-def get_top_volatile_symbols(limit=50):
+def get_top_volatile_symbols(limit=100):
     url = "https://api.binance.com/api/v3/ticker/24hr"
     response = requests.get(url)
     data = response.json()
