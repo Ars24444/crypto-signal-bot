@@ -1,31 +1,13 @@
 from flask import Flask
+import threading
 from run_signal_logic import send_signals
-import sys
-import os
 
 app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return "I'm alive"
+@app.route("/run", methods=["GET"])
+def run():
+    threading.Thread(target=send_signals).start()
+    return "✅ Signal execution started!", 200
 
-@app.route("/run")
-def run_manual():
-    try:
-        print("🟡 Entered /run route")
-        sys.stdout.flush()
-
-        # Force mode on cron
-        send_signals()
-
-        print("✅ Finished send_signals()")
-        sys.stdout.flush()
-        return "Started", 200
-    except Exception as e:
-        print(f"❌ Error in /run route: {e}")
-        sys.stdout.flush()
-        return f"Error occurred: {e}", 500
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+if name == "__main__":
+    app.run(host="0.0.0.0", port=10000)
