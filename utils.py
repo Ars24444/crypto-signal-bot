@@ -54,7 +54,7 @@ def get_top_volatile_symbols(limit=100):
         df = df[df["quoteVolume"] > 300000]
 
         # Debug: print how many symbols passed the filter
-        print(f"Passed symbols (volume > 300k): {len(df)}"
+        print(f"Passed symbols (volume > 300k): {len(df)}")
 
         df = df.sort_values(by=["quoteVolume", "priceChangePercent"], ascending=False)
         top_symbols = df.head(limit)["symbol"].tolist()
