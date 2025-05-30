@@ -36,7 +36,7 @@ def is_strong_signal(df, btc_change_pct=0):
     last_ma30 = ma30.iloc[-1]
     last_rsi = rsi.iloc[-1]
     last_volume = volume.iloc[-1]
-    avg_volume = volume[:-1].mean()
+    avg_volume = volume[-20:].mean()
 
     last_open = df['open'].iloc[-1]
     last_close = df['close'].iloc[-1]
@@ -63,22 +63,25 @@ def is_strong_signal(df, btc_change_pct=0):
         signal = "SHORT"
     else:
         return None
+    # Avoid coins with no trend
+    if abs(last_ma10 - last_ma30) < 0.002:
+        return None
 
     if signal == "LONG":
         if last_ma10 > last_ma30: score += 1
         if last_rsi > 60: score += 1
         if last_volume > 1.5 * avg_volume: score += 1
         if is_bullish: score += 1
-        if btc_change_pct > -0.5: score += 1
+        if btc_change_pct > 0: score += 1
 
     elif signal == "SHORT":
         if last_ma10 < last_ma30: score += 1
         if last_rsi < 40: score += 1
         if last_volume > 1.5 * avg_volume: score += 1
         if is_bearish: score += 1
-        if btc_change_pct < 0.5: score += 1
+        if btc_change_pct < 0: score += 1
 
     if score >= 4:
-        return signal, last_rsi, last_ma10, last_ma30, entry
+        return signal, last_rsi, last_ma10, last_ma30, entry, score
     else:
         return None
