@@ -41,7 +41,7 @@ def send_signals(force=False):
                     print(f"{symbol} has no strong signal.")
                 continue
 
-            signal, rsi, ma10, ma30, entry = result
+            signal, rsi, ma10, ma30, entry, score = result  
 
             score = 0
             if signal == "LONG":
