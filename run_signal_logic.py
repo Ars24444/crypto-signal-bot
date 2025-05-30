@@ -10,10 +10,6 @@ def send_signals(force=False):
     try:
         print("Signal function started")
         
-        symbols = get_top_volatile_symbols(limit=100)
-        used_symbols = set()
-        count = 0
-
         for symbol in symbols:
             if not symbol.endswith("USDT"):
                 continue
@@ -26,12 +22,12 @@ def send_signals(force=False):
                 print(f"{symbol} skipped due to insufficient data.")
                 continue
 
-           result = is_strong_signal(df)
+            result = is_strong_signal(df)
 
-           if not result:
-               if not force:
-                   print(f"{symbol} has no strong signal.")
-                continue 
+            if not result:
+                if not force:
+                    print(f"{symbol} has no strong signal.")
+                continue
 
             signal, rsi, ma10, ma30, entry = result
             tp1 = round(entry * (1.06 if signal == "LONG" else 0.94), 4)
