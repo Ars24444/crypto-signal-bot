@@ -92,11 +92,26 @@ def is_strong_signal(df):
         )
 
         if long_condition:
-            return "LONG", last_rsi, last_ma10, last_ma30, price
+            signal = "LONG"
         elif short_condition:
-            return "SHORT", last_rsi, last_ma10, last_ma30, price
+            signal = "SHORT"
         else:
             return None
+
+        # Scoring
+        score = 0
+        if 45 <= last_rsi <= 65:
+            score += 20
+        if abs(last_ma10 - last_ma30) / last_ma30 > 0.05:
+            score += 30
+        if current_volume > 1.2 * avg_volume:
+            score += 30
+
+        if score < 60:
+            print(f"⚠️ Skipped low-score signal: {score}")
+            return None
+
+        return signal, last_rsi, last_ma10, last_ma30, price
     except Exception as e:
         print("Error in signal calculation:", e)
         return None
