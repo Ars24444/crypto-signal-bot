@@ -9,8 +9,10 @@ bot = Bot(token=TELEGRAM_TOKEN)
 def send_signals(force=False):
     try:
         print("Signal function started")
-btc_df = get_data("BTCUSDT")
-btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-4]) / btc_df["close"].iloc[-4] * 100
+        
+        btc_df = get_data("BTCUSDT")
+        btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-4]) / btc_df["close"].iloc[-4] * 100
+        
         symbols = get_top_volatile_symbols(limit=100)
         used_symbols = set()
         count = 0
