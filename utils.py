@@ -1,7 +1,9 @@
 import requests
 import pandas as pd
+from ta.trend import SMAIndicator
+from ta.momentum import RSIIndicator
 
-def get_klines(symbol, interval="1h", limit=100):
+def get_data(symbol, interval='1h', limit=100):
     url = "https://api.binance.com/api/v3/klines"
     params = {
         "symbol": symbol,
@@ -24,8 +26,18 @@ def get_klines(symbol, interval="1h", limit=100):
         print(f"Error fetching data for {symbol}: {e}")
         return None
 
+def get_binance_spot_symbols():
+    try:
+        url = "https://api.binance.com/api/v3/exchangeInfo"
+        response = requests.get(url, timeout=10)
+        data = response.json()
+        symbols = [s["symbol"] for s in data["symbols"] if s["quoteAsset"] == "USDT" and s["status"] == "TRADING"]
+        return symbols
+    except Exception as e:
+        print("Error fetching Binance spot symbols:", e)
+        return []
 
-def get_top_volatile_symbols(limit=30):
+def get_top_volatile_symbols(limit=100):
     url = "https://api.binance.com/api/v3/ticker/24hr"
     try:
         response = requests.get(url, timeout=10)
@@ -35,6 +47,10 @@ def get_top_volatile_symbols(limit=30):
         df["priceChangePercent"] = df["priceChangePercent"].astype(float)
         df["quoteVolume"] = df["quoteVolume"].astype(float)
         df = df[df["symbol"].str.endswith("USDT")]
+
+        valid_symbols = get_binance_spot_symbols()
+        df = df[df["symbol"].isin(valid_symbols)]
+
         df = df.sort_values(by=["quoteVolume", "priceChangePercent"], ascending=False)
         top_symbols = df.head(limit)["symbol"].tolist()
         return top_symbols
@@ -42,12 +58,8 @@ def get_top_volatile_symbols(limit=30):
         print("Error fetching top symbols:", e)
         return []
 
-
 def is_strong_signal(df):
     try:
-        from ta.trend import SMAIndicator
-        from ta.momentum import RSIIndicator
-
         close = df["close"]
         volume = df["volume"]
 
@@ -69,10 +81,10 @@ def is_strong_signal(df):
         )
 
         short_condition = (
-             current_volume > 1.05 * avg_volume and
-             last_ma10 < last_ma30 and
-             last_rsi < 48
-        ) 
+            current_volume > 1.05 * avg_volume and
+            last_ma10 < last_ma30 and
+            last_rsi < 48
+        )
 
         if long_condition:
             return "LONG", last_rsi, last_ma10, last_ma30, price
