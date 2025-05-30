@@ -81,16 +81,15 @@ def is_strong_signal(df):
 
         long_condition = (
             current_volume > 1.2 * avg_volume and
-            last_ma10 > last_ma30 and
-            last_rsi > 60
+            (last_ma10 - last_ma30) / last_ma30 > 0.01 and
+            last_rsi > 65
         )
 
         short_condition = (
             current_volume > 1.2 * avg_volume and
-            last_ma10 < last_ma30 and
-            last_rsi < 40
+            (last_ma30 - last_ma10) / last_ma10 > 0.01 and
+            last_rsi < 35
         )
-
         if long_condition:
             signal = "LONG"
         elif short_condition:
