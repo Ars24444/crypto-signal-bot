@@ -10,7 +10,7 @@ def send_signals():
     try:
         print("Signal function started")
         
-        symbols = get_top_volatile_symbols(limit=60)
+        symbols = get_top_volatile_symbols(limit=100)
         used_symbols = set()
         count = 0
 
@@ -57,7 +57,7 @@ SL: {sl}"""
 
         if count == 0:
             print("No strong signals found")
-            bot.send_message(chat_id=CHAT_ID, text="❌ No strong signals found on top 60 coins.")
+            bot.send_message(chat_id=CHAT_ID, text="❌ No strong signals found on top 100 coins.")
 
     except Exception as e:
         print(f"❌ ERROR in send_signals: {e}")
