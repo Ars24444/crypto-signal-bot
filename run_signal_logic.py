@@ -1,4 +1,4 @@
-from utils import get_data, is_strong_signal
+from utils import get_data, is_strong_signal, get_active_usdt_symbols
 from get_top_symbols import get_top_volatile_symbols
 from telegram import Bot
 import os
@@ -16,6 +16,7 @@ def send_signals(force=False):
         btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-4]) / btc_df["close"].iloc[-4] * 100
 
         symbols = get_top_volatile_symbols(limit=100)
+        active_usdt_symbols = get_active_usdt_symbols()
         used_symbols = set()
         count = 0
 
@@ -25,6 +26,9 @@ def send_signals(force=False):
 
         for symbol in symbols:
             if not symbol.endswith("USDT"):
+                continue
+            if symbol not in active_usdt_symbols:
+                print(f"{symbol} is not active — skipping.")
                 continue
             if symbol in used_symbols:
                 continue
@@ -41,15 +45,7 @@ def send_signals(force=False):
                     print(f"{symbol} has no strong signal.")
                 continue
 
-            signal, rsi, ma10, ma30, entry, score = result  
-
-            score = 0
-            if signal == "LONG":
-                if ma10 > ma30: score += 1
-                if rsi > 60: score += 1
-            elif signal == "SHORT":
-                if ma10 < ma30: score += 1
-                if rsi < 40: score += 1
+            signal, rsi, ma10, ma30, entry, score = result
 
             if score > top_score:
                 top_score = score
