@@ -47,6 +47,14 @@ def send_signals(force=False):
 
             signal, rsi, ma10, ma30, entry, score = result
 
+            # Add emoji based on score
+            if score == 5:
+                emoji = "🔥🔥🔥"
+            elif score == 4:
+                emoji = "🔥"
+            else:
+                emoji = "⚠️"
+
             if score > top_score:
                 top_score = score
                 top_pick = symbol
@@ -58,8 +66,9 @@ def send_signals(force=False):
             sl = round(entry * (0.99 if signal == "LONG" else 1.01), 4)
 
             message = (
-                f"📊 {symbol} (1h)\n"
+                f"{emoji} {symbol} (1h)\n"
                 f"Signal: {signal}\n"
+                f"Score: {score}/5\n"
                 f"RSI: {rsi:.2f}\n"
                 f"MA10: {ma10:.2f}, MA30: {ma30:.2f}\n"
                 f"Entry: {entry_low} – {entry_high}\n"
