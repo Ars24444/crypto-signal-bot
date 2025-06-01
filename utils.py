@@ -93,3 +93,15 @@ def is_strong_signal(df, btc_change_pct=0):
         return signal, last_rsi, last_ma10, last_ma30, entry, score
     else:
         return None
+
+# ✅ NEW FUNCTION — Get only active USDT pairs from Binance
+def get_active_usdt_symbols():
+    url = "https://api.binance.com/api/v3/exchangeInfo"
+    response = requests.get(url)
+    data = response.json()
+
+    symbols = []
+    for s in data["symbols"]:
+        if s["quoteAsset"] == "USDT" and s["status"] == "TRADING":
+            symbols.append(s["symbol"])
+    return symbols
