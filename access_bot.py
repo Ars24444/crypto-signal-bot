@@ -1,8 +1,8 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import json
-import pytz
 import os
+from pytz import utc
 
 TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
 VIP_GROUP_LINK = "https://t.me/+vAr3ecIJJLs0NTdi"
@@ -16,14 +16,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     whitelist = load_whitelist()
 
     if user_id in whitelist and whitelist[user_id]:
-        await context.bot.send_message(chat_id=update.effective_chat.id,
-            text=f"✅ Access granted!\nHere is your VIP link:\n{VIP_GROUP_LINK}")
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"✅ Access granted!\nHere is your VIP link:\n{VIP_GROUP_LINK}"
+        )
     else:
-        await context.bot.send_message(chat_id=update.effective_chat.id,
-            text="🚫 Access denied. Please subscribe to get access.\n💳 Contact @YourUsername to pay.")
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="🚫 Access denied. Please subscribe to get access.\n💳 Contact @YourUsername to pay."
+        )
 
 def main():
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).timezone(utc).build()
     app.add_handler(CommandHandler("start", start))
     app.run_polling()
 
