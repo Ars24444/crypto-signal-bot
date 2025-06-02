@@ -27,7 +27,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 def main():
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).timezone(utc).build()
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.run_polling()
 
