@@ -7,7 +7,7 @@ import os
 TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
 
 # VIP խմբի հղումը (invite link)
-VIP_GROUP_LINK = "https://t.me/+YourGroupInvite"
+VIP_GROUP_LINK = "https://t.me/+vAr3ecIJJLs0NTdi"
 
 # Բեռնենք whitelist
 def load_whitelist():
