@@ -59,12 +59,12 @@ def is_strong_signal(df, btc_change_pct=0):
         is_bullish
     ):
         signal = "LONG"
-  elif (
+    elif (
         last_volume > 1.4 * avg_volume and
         is_bearish and
         (last_ma10 < last_ma30 or last_rsi < 45)
-  ):
-    signal = "SHORT"
+    ):
+        signal = "SHORT"
     else:
         return None
 
