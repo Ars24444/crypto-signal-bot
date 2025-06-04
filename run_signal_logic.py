@@ -39,7 +39,7 @@ def send_signals(force=False):
                 print(f"{symbol} skipped due to insufficient data.")
                 continue
 
-            result = is_strong_signal(df, btc_change_pct)
+            result = is_strong_signal(df, btc_change_pct, symbol=symbol)
             if not result:
                 if not force:
                     print(f"{symbol} has no strong signal.")
