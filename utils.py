@@ -50,7 +50,7 @@ def is_strong_signal(df, btc_change_pct=0):
     score = 0
 
     # 📉 Skip flat trends
-    if abs(last_ma10 - last_ma30) < 0.005:
+    if abs(last_ma10 - last_ma30) < 0.003:
         return None
 
     # ✅ LONG signal conditions
