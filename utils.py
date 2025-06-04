@@ -52,19 +52,21 @@ def is_strong_signal(df, btc_change_pct=0):
         return None
 
     # Base conditions with 1.4x volume filter and relaxed RSI
+    # LONG
     if (
         last_volume > 1.4 * avg_volume and
         last_ma10 > last_ma30 and
-        last_rsi > 55 and
-        is_bullish
+        (last_rsi > 55 or is_bullish)
     ):
         signal = "LONG"
+
+    # SHORT
     elif (
         last_volume > 1.4 * avg_volume and
-        is_bearish and
-        (last_ma10 < last_ma30 or last_rsi < 45)
+        last_ma10 < last_ma30 and
+        (last_rsi < 45 or is_bearish)
     ):
-        signal = "SHORT"
+        signal = "SHORT
     else:
         return None
 
