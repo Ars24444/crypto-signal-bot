@@ -3,6 +3,7 @@ from ta.momentum import RSIIndicator
 import requests
 import pandas as pd
 
+# ✅ Get historical kline data from Binance
 def get_data(symbol, interval='1h', limit=100):
     url = "https://api.binance.com/api/v3/klines"
     params = {
@@ -21,6 +22,7 @@ def get_data(symbol, interval='1h', limit=100):
     df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
     return df
 
+# ✅ Detect strong LONG/SHORT signal with better SHORT filters
 def is_strong_signal(df, btc_change_pct=0):
     if df is None or len(df) < 30:
         return None
@@ -47,12 +49,11 @@ def is_strong_signal(df, btc_change_pct=0):
     signal = None
     score = 0
 
-    # Skip flat trends
+    # 📉 Skip flat trends
     if abs(last_ma10 - last_ma30) < 0.005:
         return None
 
-    # Base conditions with 1.4x volume filter and relaxed RSI
-    # LONG
+    # ✅ LONG signal conditions
     if (
         last_volume > 1.4 * avg_volume and
         last_ma10 > last_ma30 and
@@ -60,23 +61,24 @@ def is_strong_signal(df, btc_change_pct=0):
     ):
         signal = "LONG"
 
-    # SHORT
+    # 🔒 STRICT SHORT signal conditions
     elif (
-        last_volume > 1.4 * avg_volume and
+        last_volume > 1.6 * avg_volume and
         last_ma10 < last_ma30 and
-        (last_rsi < 45 or is_bearish)
+        last_rsi < 40 and
+        is_bearish
     ):
-        signal = "SHORT
+        signal = "SHORT"
     else:
         return None
 
-    # BTC influence filter
+    # 🛡 BTC influence filter
     if signal == "SHORT" and btc_change_pct > 1:
         return None
     if signal == "LONG" and btc_change_pct < -1:
         return None
 
-    # Scoring
+    # ✅ Confidence scoring
     if signal == "LONG":
         if last_ma10 > last_ma30: score += 1
         if last_rsi > 60: score += 1
@@ -85,8 +87,8 @@ def is_strong_signal(df, btc_change_pct=0):
         if btc_change_pct > 0.5: score += 1
     elif signal == "SHORT":
         if last_ma10 < last_ma30: score += 1
-        if last_rsi < 40: score += 1
-        if last_volume > 1.6 * avg_volume: score += 1
+        if last_rsi < 35: score += 1
+        if last_volume > 1.8 * avg_volume: score += 1
         if is_bearish: score += 1
         if btc_change_pct < -0.5: score += 1
 
@@ -95,7 +97,7 @@ def is_strong_signal(df, btc_change_pct=0):
     else:
         return None
 
-# ✅ NEW FUNCTION — Get only active USDT pairs from Binance
+# ✅ Get only active USDT pairs from Binance
 def get_active_usdt_symbols():
     url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(url)
