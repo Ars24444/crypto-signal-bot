@@ -2,6 +2,7 @@ from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 import requests
 import pandas as pd
+import time
 
 # ✅ Get historical kline data from Binance
 def get_data(symbol, interval='1h', limit=100):
@@ -22,9 +23,57 @@ def get_data(symbol, interval='1h', limit=100):
     df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
     return df
 
-# ✅ Enhanced scoring system for LONG/SHORT detection
-def is_strong_signal(df, btc_change_pct=0):
+# ✅ Get only active USDT pairs from Binance
+def get_active_usdt_symbols():
+    url = "https://api.binance.com/api/v3/exchangeInfo"
+    response = requests.get(url)
+    data = response.json()
+
+    symbols = []
+    for s in data["symbols"]:
+        if s["quoteAsset"] == "USDT" and s["status"] == "TRADING":
+            symbols.append(s["symbol"])
+    return symbols
+
+# ✅ Check real buy/sell sides using Futures aggTrades
+def has_minimum_long_short_trades(symbol, min_each=50):
+    url = "https://fapi.binance.com/fapi/v1/aggTrades"
+    end_time = int(time.time() * 1000)
+    start_time = end_time - (15 * 60 * 1000)  # last 15 minutes
+
+    params = {
+        "symbol": symbol,
+        "startTime": start_time,
+        "endTime": end_time,
+        "limit": 1000
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        trades = response.json()
+        long_count = 0
+        short_count = 0
+
+        for trade in trades:
+            if trade['m']:  # maker = seller → buyer opened = LONG
+                short_count += 1
+            else:
+                long_count += 1
+
+        return long_count >= min_each and short_count >= min_each
+
+    except Exception as e:
+        print(f"Error fetching trade data for {symbol}: {e}")
+        return False
+
+# ✅ Enhanced scoring system with trade side check
+def is_strong_signal(df, btc_change_pct=0, symbol=None):
     if df is None or len(df) < 30:
+        return None
+
+    # ⚠️ Trade-side check
+    if symbol and not has_minimum_long_short_trades(symbol):
+        print(f"{symbol} skipped due to low real trade activity (less than 50 long/short trades)")
         return None
 
     close = df['close']
@@ -39,9 +88,8 @@ def is_strong_signal(df, btc_change_pct=0):
     last_ma10 = ma10.iloc[-1]
     last_ma30 = ma30.iloc[-1]
     current_volume = volume.iloc[-1]
-    avg_volume = volume.iloc[-30:-1].mean()
+    avg_volume = volume.iloc[-30:].mean()
 
-    # Candlestick structure
     last_open = df['open'].iloc[-1]
     prev_open = df['open'].iloc[-2]
     prev_close = df['close'].iloc[-2]
@@ -52,7 +100,6 @@ def is_strong_signal(df, btc_change_pct=0):
     score = 0
     direction = None
 
-    # --- Conditions (scoring) ---
     if last_rsi < 35:
         score += 1
         direction = 'SHORT'
@@ -76,20 +123,7 @@ def is_strong_signal(df, btc_change_pct=0):
     elif direction == 'LONG' and btc_change_pct >= 0:
         score += 1
 
-    # --- Final filter ---
     if score >= 4 and direction:
         return direction, round(last_rsi, 2), round(last_ma10, 4), round(last_ma30, 4), last_close, score
 
     return None
-
-# ✅ Get only active USDT pairs from Binance
-def get_active_usdt_symbols():
-    url = "https://api.binance.com/api/v3/exchangeInfo"
-    response = requests.get(url)
-    data = response.json()
-
-    symbols = []
-    for s in data["symbols"]:
-        if s["quoteAsset"] == "USDT" and s["status"] == "TRADING":
-            symbols.append(s["symbol"])
-    return symbols
