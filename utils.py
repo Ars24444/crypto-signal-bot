@@ -22,7 +22,7 @@ def get_data(symbol, interval='1h', limit=100):
     df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
     return df
 
-# ✅ Detect strong LONG/SHORT signal with better SHORT filters
+# ✅ Enhanced scoring system for LONG/SHORT detection
 def is_strong_signal(df, btc_change_pct=0):
     if df is None or len(df) < 30:
         return None
@@ -34,79 +34,53 @@ def is_strong_signal(df, btc_change_pct=0):
     ma30 = SMAIndicator(close, window=30).sma_indicator()
     rsi = RSIIndicator(close, window=14).rsi()
 
+    last_close = close.iloc[-1]
+    last_rsi = rsi.iloc[-1]
     last_ma10 = ma10.iloc[-1]
     last_ma30 = ma30.iloc[-1]
-    last_rsi = rsi.iloc[-1]
-    last_volume = volume.iloc[-1]
-    avg_volume = volume[-5:].mean()
+    current_volume = volume.iloc[-1]
+    avg_volume = volume.iloc[-30:-1].mean()
 
+    # Candlestick structure
     last_open = df['open'].iloc[-1]
-    last_close = df['close'].iloc[-1]
-    is_bullish = last_close > last_open
-    is_bearish = last_close < last_open
-
     prev_open = df['open'].iloc[-2]
     prev_close = df['close'].iloc[-2]
-    prev_high = df['high'].iloc[-2]
-    last_high = df['high'].iloc[-1]
 
-    entry = last_close
-    signal = None
+    bearish_candles = last_close < last_open and prev_close < prev_open
+    bullish_candles = last_close > last_open and prev_close > prev_open
+
     score = 0
+    direction = None
 
-    # 📉 Skip flat trends
-    if abs(last_ma10 - last_ma30) < 0.003:
-        return None
+    # --- Conditions (scoring) ---
+    if last_rsi < 35:
+        score += 1
+        direction = 'SHORT'
+    elif last_rsi > 65:
+        score += 1
+        direction = 'LONG'
 
-    # 🚫 Extra SHORT filters
-    if last_high > prev_high:  # price might reverse up
-        return None
-    if is_bearish and prev_close > prev_open:  # last is bearish but previous not
-        return None
+    if abs(last_ma10 - last_ma30) / last_ma30 > 0.007:
+        score += 1
 
-    # ✅ LONG signal conditions
-    if (
-        last_volume > 1.4 * avg_volume and
-        last_ma10 > last_ma30 and
-        (last_rsi > 55 or is_bullish)
-    ):
-        signal = "LONG"
+    if current_volume > 1.3 * avg_volume:
+        score += 1
 
-    # 🔒 STRICT SHORT signal conditions
-    elif (
-        last_volume > 1.6 * avg_volume and
-        last_ma10 < last_ma30 and
-        last_rsi < 40 and
-        is_bearish
-    ):
-        signal = "SHORT"
-    else:
-        return None
+    if direction == 'SHORT' and bearish_candles:
+        score += 1
+    elif direction == 'LONG' and bullish_candles:
+        score += 1
 
-    # 🛡 BTC influence filter
-    if signal == "SHORT" and btc_change_pct > 1:
-        return None
-    if signal == "LONG" and btc_change_pct < -1:
-        return None
+    if direction == 'SHORT' and btc_change_pct <= 0:
+        score += 1
+    elif direction == 'LONG' and btc_change_pct >= 0:
+        score += 1
 
-    # ✅ Confidence scoring
-    if signal == "LONG":
-        if last_ma10 > last_ma30: score += 1
-        if last_rsi > 60: score += 1
-        if last_volume > 1.6 * avg_volume: score += 1
-        if is_bullish: score += 1
-        if btc_change_pct > 0.5: score += 1
-    elif signal == "SHORT":
-        if last_ma10 < last_ma30: score += 1
-        if last_rsi < 35: score += 1
-        if last_volume > 1.8 * avg_volume: score += 1
-        if is_bearish: score += 1
-        if btc_change_pct < -0.5: score += 1
+    # --- Final filter ---
+    if score >= 4 and direction:
+        return direction, round(last_rsi, 2), round(last_ma10, 4), round(last_ma30, 4), last_close, score
 
-    if score >= 4:
-        return signal, last_rsi, last_ma10, last_ma30, entry, score
-    else:
-        return None
+    return None
 
 # ✅ Get only active USDT pairs from Binance
 def get_active_usdt_symbols():
