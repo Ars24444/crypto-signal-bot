@@ -45,12 +45,23 @@ def is_strong_signal(df, btc_change_pct=0):
     is_bullish = last_close > last_open
     is_bearish = last_close < last_open
 
+    prev_open = df['open'].iloc[-2]
+    prev_close = df['close'].iloc[-2]
+    prev_high = df['high'].iloc[-2]
+    last_high = df['high'].iloc[-1]
+
     entry = last_close
     signal = None
     score = 0
 
     # 📉 Skip flat trends
     if abs(last_ma10 - last_ma30) < 0.003:
+        return None
+
+    # 🚫 Extra SHORT filters
+    if last_high > prev_high:  # price might reverse up
+        return None
+    if is_bearish and prev_close > prev_open:  # last is bearish but previous not
         return None
 
     # ✅ LONG signal conditions
