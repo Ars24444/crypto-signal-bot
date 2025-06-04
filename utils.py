@@ -38,7 +38,7 @@ def is_strong_signal(df, btc_change_pct=0):
     last_ma30 = ma30.iloc[-1]
     last_rsi = rsi.iloc[-1]
     last_volume = volume.iloc[-1]
-    avg_volume = volume[-20:].mean()
+    avg_volume = volume[-5:].mean()
 
     last_open = df['open'].iloc[-1]
     last_close = df['close'].iloc[-1]
