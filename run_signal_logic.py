@@ -1,6 +1,8 @@
 from utils import get_data, is_strong_signal, get_active_usdt_symbols
 from get_top_symbols import get_top_volatile_symbols
 from telegram import Bot
+from blacklist_manager import is_blacklisted, add_to_blacklist
+from check_trade_result import check_trade_result
 import os
 
 TELEGRAM_TOKEN = '7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs'
@@ -25,6 +27,9 @@ def send_signals(force=False):
         messages = []
 
         for symbol in symbols:
+            if is_blacklisted(symbol):
+                print(f"{symbol} is temporarily blacklisted")
+                continue
             if not symbol.endswith("USDT"):
                 continue
             if symbol not in active_usdt_symbols:
@@ -80,6 +85,20 @@ def send_signals(force=False):
             messages.append((symbol, message))
             used_symbols.add(symbol)
             count += 1
+
+            # ✅ Check TP/SL result and blacklist if SL hit
+            trade_result = check_trade_result(
+                symbol=symbol,
+                entry_low=entry_low,
+                entry_high=entry_high,
+                tp1=tp1,
+                tp2=tp2,
+                sl=sl,
+                hours_to_check=3
+            )
+            print(f"{symbol} result: {trade_result}")
+            if trade_result.startswith("❌ SL"):
+                add_to_blacklist(symbol)
 
             if count >= 8:
                 break
