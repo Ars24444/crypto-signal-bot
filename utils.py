@@ -51,6 +51,11 @@ def has_minimum_long_short_trades(symbol, min_each=50):
     try:
         response = requests.get(url, params=params)
         trades = response.json()
+        
+        if not isinstance(trades, list):
+            print(f"{symbol} skipped: unexpected response (not a list): {trades}")
+            return False
+            
         long_count = 0
         short_count = 0
 
