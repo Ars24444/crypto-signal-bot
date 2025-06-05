@@ -87,7 +87,9 @@ def is_strong_signal(df, btc_change_pct=0, symbol=None):
     last_ma10 = ma10.iloc[-1]
     last_ma30 = ma30.iloc[-1]
     current_volume = volume.iloc[-1]
-    avg_volume = volume.iloc[-30:].mean()
+    
+    # ✅ Use last 10 candles for average volume (better for fast momentum)
+    avg_volume = volume.iloc[-10:].mean()
 
     last_open = df['open'].iloc[-1]
     prev_open = df['open'].iloc[-2]
