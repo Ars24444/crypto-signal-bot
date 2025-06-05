@@ -4,7 +4,7 @@ import requests
 import pandas as pd
 import time
 
-# ✅ Get historical kline data from Binance
+# Get historical kline data from Binance
 def get_data(symbol, interval='1h', limit=100):
     url = "https://api.binance.com/api/v3/klines"
     params = {
@@ -23,7 +23,7 @@ def get_data(symbol, interval='1h', limit=100):
     df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
     return df
 
-# ✅ Get only active USDT pairs from Binance
+# Get only active USDT trading pairs from Binance
 def get_active_usdt_symbols():
     url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(url)
@@ -35,7 +35,7 @@ def get_active_usdt_symbols():
             symbols.append(s["symbol"])
     return symbols
 
-# ✅ Check real buy/sell sides using Futures aggTrades
+# Check if there are at least N long and N short trades in last 15min from Binance Futures
 def has_minimum_long_short_trades(symbol, min_each=50):
     url = "https://fapi.binance.com/fapi/v1/aggTrades"
     end_time = int(time.time() * 1000)
@@ -66,12 +66,11 @@ def has_minimum_long_short_trades(symbol, min_each=50):
         print(f"Error fetching trade data for {symbol}: {e}")
         return False
 
-# ✅ Enhanced scoring system with trade side check
+# Detect strong signals based on RSI, MA, volume, candles, and BTC filter
 def is_strong_signal(df, btc_change_pct=0, symbol=None):
     if df is None or len(df) < 30:
         return None
 
-    # ⚠️ Trade-side check
     if symbol and not has_minimum_long_short_trades(symbol):
         print(f"{symbol} skipped due to low real trade activity (less than 50 long/short trades)")
         return None
@@ -122,6 +121,14 @@ def is_strong_signal(df, btc_change_pct=0, symbol=None):
         score += 1
     elif direction == 'LONG' and btc_change_pct >= 0:
         score += 1
+
+    # BTC trend filter: block opposite signals during strong BTC moves
+    if btc_change_pct > 1.2 and direction == 'SHORT':
+        print(f"{symbol} skipped due to BTC uptrend ({btc_change_pct}%) blocking SHORT")
+        return None
+    elif btc_change_pct < -1.2 and direction == 'LONG':
+        print(f"{symbol} skipped due to BTC downtrend ({btc_change_pct}%) blocking LONG")
+        return None
 
     if score >= 4 and direction:
         return direction, round(last_rsi, 2), round(last_ma10, 4), round(last_ma30, 4), last_close, score
