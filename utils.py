@@ -70,8 +70,6 @@ def has_minimum_long_short_trades(symbol, min_each=50):
     except Exception as e:
         print(f"Error fetching trade data for {symbol}: {e}")
         return False
-
-# Detect strong signals based on RSI, MA, volume, candles, and BTC filter
 def is_strong_signal(df, btc_change_pct=0, symbol=None):
     if df is None or len(df) < 30:
         return None
@@ -88,20 +86,21 @@ def is_strong_signal(df, btc_change_pct=0, symbol=None):
     rsi = RSIIndicator(close, window=14).rsi()
 
     last_close = close.iloc[-1]
-    last_rsi = rsi.iloc[-1]
-    last_ma10 = ma10.iloc[-1]
-    last_ma30 = ma30.iloc[-1]
-    current_volume = volume.iloc[-1]
-    
-    # ✅ Use last 10 candles for average volume (better for fast momentum)
-    avg_volume = volume.iloc[-10:].mean()
-
     last_open = df['open'].iloc[-1]
     prev_open = df['open'].iloc[-2]
     prev_close = df['close'].iloc[-2]
 
+    last_rsi = rsi.iloc[-1]
+    last_ma10 = ma10.iloc[-1]
+    last_ma30 = ma30.iloc[-1]
+    current_volume = volume.iloc[-1]
+    avg_volume = volume.iloc[-10:].mean()
+
     bearish_candles = last_close < last_open and prev_close < prev_open
     bullish_candles = last_close > last_open and prev_close > prev_open
+
+    # ➕ NEW: detect real price direction in last candle
+    last_candle_direction = 'UP' if last_close > last_open else 'DOWN'
 
     score = 0
     direction = None
@@ -116,7 +115,7 @@ def is_strong_signal(df, btc_change_pct=0, symbol=None):
     if abs(last_ma10 - last_ma30) / last_ma30 > 0.007:
         score += 1
 
-    if current_volume > 1.3 * avg_volume:
+    if current_volume > 1.3 * avg_volume and current_volume < 3.0 * avg_volume:
         score += 1
 
     if direction == 'SHORT' and bearish_candles:
@@ -129,7 +128,15 @@ def is_strong_signal(df, btc_change_pct=0, symbol=None):
     elif direction == 'LONG' and btc_change_pct >= 0:
         score += 1
 
-    # BTC trend filter: block opposite signals during strong BTC moves
+    # ➕ NEW: avoid signal if it contradicts last candle
+    if direction == 'SHORT' and last_candle_direction == 'UP':
+        print(f"{symbol} skipped: SHORT signal contradicts green candle")
+        return None
+    elif direction == 'LONG' and last_candle_direction == 'DOWN':
+        print(f"{symbol} skipped: LONG signal contradicts red candle")
+        return None
+
+    # BTC trend filter
     if btc_change_pct > 1.2 and direction == 'SHORT':
         print(f"{symbol} skipped due to BTC uptrend ({btc_change_pct}%) blocking SHORT")
         return None
