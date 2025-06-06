@@ -177,12 +177,42 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
         print(f"{symbol} skipped: BTC overbought, LONG blocked")
         return None
 
-    # ✅ Վերջին մոմի անվտանգությունը ստուգենք ըստ ուղղության
     if direction and not is_safe_last_candle(df, signal_type=direction):
         print(f"{symbol} skipped: last candle not safe for {direction}")
         return None
 
     if score >= 4 and direction:
-        return direction, round(last_rsi, 2), round(last_ma10, 4), round(last_ma30, 4), last_close, score
+        true_range = df[['high', 'low', 'close']].copy()
+        true_range['previous_close'] = true_range['close'].shift(1)
+        true_range['tr'] = true_range[['high', 'low', 'previous_close']].apply(
+            lambda row: max(
+                row['high'] - row['low'],
+                abs(row['high'] - row['previous_close']),
+                abs(row['low'] - row['previous_close'])
+            ), axis=1
+        )
+        atr = true_range['tr'].rolling(window=14).mean().iloc[-1]
 
+        entry = last_close
+
+        if direction == 'LONG':
+            tp1 = entry + 1.2 * atr
+            tp2 = entry + 2.0 * atr
+            sl = entry - 1.0 * atr
+        else:
+            tp1 = entry - 1.2 * atr
+            tp2 = entry - 2.0 * atr
+            sl = entry + 1.0 * atr
+
+        return {
+            "type": direction,
+            "entry": round(entry, 4),
+            "tp1": round(tp1, 4),
+            "tp2": round(tp2, 4),
+            "sl": round(sl, 4),
+            "score": score,
+            "rsi": round(last_rsi, 2),
+            "ma10": round(last_ma10, 4),
+            "ma30": round(last_ma30, 4)
+        }
     return None
