@@ -183,6 +183,11 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
         return {
             "type": direction,
             "entry": round(entry, 4),
-            ...
-        }    
-    
+            "tp1": round(tp1, 4),
+            "tp2": round(tp2, 4),
+            "sl": round(sl, 4),
+            "score": score,
+            "rsi": round(last_rsi, 2),
+            "ma10": round(last_ma10, 4),
+            "ma30": round(last_ma30, 4)
+        }
