@@ -180,7 +180,9 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     if direction and not is_safe_last_candle(df, signal_type=direction):
         print(f"{symbol} skipped: last candle not safe for {direction}")
         return None
-
-    return direction, last_rsi, last_ma10, last_ma30, entry, score
-
+        return {
+            "type": direction,
+            "entry": round(entry, 4),
+            ...
+        }    
     
