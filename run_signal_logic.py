@@ -1,4 +1,3 @@
-
 from utils import get_data, is_strong_signal, get_active_usdt_symbols
 from get_top_symbols import get_top_volatile_symbols
 from telegram import Bot
@@ -43,12 +42,16 @@ def send_signals(force=False):
                 print(f"{symbol} has no strong signal.")
             continue
 
+        score = result["score"]
+        if score < 4:
+            print(f"{symbol} skipped due to low score: {score}")
+            continue
+
         signal = result["type"]
         entry = result["entry"]
         tp1 = result["tp1"]
         tp2 = result["tp2"]
         sl = result["sl"]
-        score = result["score"]
         rsi = result["rsi"]
         ma10 = result["ma10"]
         ma30 = result["ma30"]
