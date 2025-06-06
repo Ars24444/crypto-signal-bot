@@ -40,7 +40,7 @@ def send_signals(force=False):
             continue
 
         score = result["score"]
-        if score < 4:
+        if score < 1:
             continue  # skip low confidence signals
 
         signal = result["type"]
