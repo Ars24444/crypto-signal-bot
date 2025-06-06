@@ -1,17 +1,3 @@
-from utils import get_data, is_strong_signal, get_active_usdt_symbols
-from get_top_symbols import get_top_volatile_symbols
-from telegram import Bot
-from ta.momentum import RSIIndicator
-from ta.volatility import AverageTrueRange
-from blacklist_manager import is_blacklisted, add_to_blacklist
-from check_trade_result import check_trade_result
-import os
-
-TELEGRAM_TOKEN = '7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs'
-CHAT_ID = 5398864436
-
-bot = Bot(token=TELEGRAM_TOKEN)
-
 def send_signals(force=False):
     print("Signal function started")
 
@@ -26,6 +12,7 @@ def send_signals(force=False):
 
     top_score = -1
     top_pick = None
+    count = 0
 
     for symbol in symbols:
         if is_blacklisted(symbol) or not symbol.endswith("USDT") or symbol not in active_usdt_symbols or symbol in used_symbols:
@@ -36,14 +23,24 @@ def send_signals(force=False):
             continue
 
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
+        print("✅ Raw result:", result)
+
         if not result:
             continue
 
-        score = result["score"]
-        if score < 1:
-            continue  # skip low confidence signals
-
         signal = result["type"]
+        score = result["score"]
+
+        # ❌ Skip if signal is not LONG or SHORT
+        if signal not in ["LONG", "SHORT"]:
+            print(f"{symbol} skipped because signal is None or invalid: {signal}")
+            continue
+
+        # ❌ Skip if score is too low
+        if score < 4:
+            print(f"{symbol} skipped because score < 4: {score}")
+            continue
+
         entry = result["entry"]
         tp1 = result["tp1"]
         tp2 = result["tp2"]
@@ -66,7 +63,13 @@ def send_signals(force=False):
         entry_low = round(entry * 0.995, 4)
         entry_high = round(entry * 1.005, 4)
 
-        atr = AverageTrueRange(high=df["high"], low=df["low"], close=df["close"], window=14).average_true_range().iloc[-1]
+        atr = AverageTrueRange(
+            high=df["high"],
+            low=df["low"],
+            close=df["close"],
+            window=14
+        ).average_true_range().iloc[-1]
+
         if signal == "LONG":
             sl = round(entry_high * 0.985, 4)
             tp1 = round(entry + atr, 4)
@@ -90,6 +93,22 @@ def send_signals(force=False):
 
         messages.append((symbol, message))
         used_symbols.add(symbol)
+        count += 1
+
+        trade_result = check_trade_result(
+            symbol=symbol,
+            entry_low=entry_low,
+            entry_high=entry_high,
+            tp1=tp1,
+            tp2=tp2,
+            sl=sl,
+            hours_to_check=3
+        )
+        if trade_result.startswith("❌ SL"):
+            add_to_blacklist(symbol)
+
+        if count >= 8:
+            break
 
     try:
         if messages:
