@@ -2,7 +2,7 @@ from utils import get_data, is_strong_signal, get_active_usdt_symbols
 from get_top_symbols import get_top_volatile_symbols
 from telegram import Bot
 from ta.momentum import RSIIndicator
-from ta.volatility import AverageTrueRange  # ✅ Added for ATR
+from ta.volatility import AverageTrueRange
 from blacklist_manager import is_blacklisted, add_to_blacklist
 from check_trade_result import check_trade_result
 import os
@@ -59,7 +59,7 @@ def send_signals(force=False):
             entry_low = round(entry * 0.995, 4)
             entry_high = round(entry * 1.005, 4)
 
-            # ✅ Calculate ATR for TP1/TP2
+            # ATR for SL, TP1, TP2
             atr = AverageTrueRange(
                 high=df["high"],
                 low=df["low"],
@@ -67,7 +67,6 @@ def send_signals(force=False):
                 window=14
             ).average_true_range().iloc[-1]
 
-            # ✅ Calculate TP1, TP2 and SL using ATR
             if signal == "LONG":
                 sl = round(entry_high * 0.985, 4)
                 tp1 = round(entry + atr, 4)
@@ -107,17 +106,17 @@ def send_signals(force=False):
 
             if count >= 8:
                 break
-                
-            try:
-                if count > 0:
-                    for symbol, msg in messages:
-                        if symbol == top_pick:
-                            msg = "🔝 TOP PICK\n" + msg
-                        print(f"📤 Sending signal for {symbol}:\n{msg}\n")
-                        bot.send_message(chat_id=CHAT_ID, text=msg)
-                else:
-                    print("📭 No strong signals found. Market is calm.")
-                    bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
 
-            except Exception as e:
-                print(f"ERROR in send_signals: {e}")
+        # ✅ Final messaging
+        try:
+            if count > 0:
+                for symbol, msg in messages:
+                    if symbol == top_pick:
+                        msg = "🔝 TOP PICK\n" + msg
+                    print(f"📤 Sending signal for {symbol}:\n{msg}\n")
+                    bot.send_message(chat_id=CHAT_ID, text=msg)
+            else:
+                print("📭 No strong signals found. Market is calm.")
+                bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
+        except Exception as e:
+            print(f"ERROR in send_signals: {e}")
