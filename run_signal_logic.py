@@ -2,6 +2,7 @@ from utils import get_data, is_strong_signal, get_active_usdt_symbols
 from get_top_symbols import get_top_volatile_symbols
 from telegram import Bot
 from ta.momentum import RSIIndicator
+from ta.volatility import AverageTrueRange  # ✅ Added for ATR
 from blacklist_manager import is_blacklisted, add_to_blacklist
 from check_trade_result import check_trade_result
 import os
@@ -29,13 +30,7 @@ def send_signals(force=False):
         messages = []
 
         for symbol in symbols:
-            if is_blacklisted(symbol):
-                continue
-            if not symbol.endswith("USDT"):
-                continue
-            if symbol not in active_usdt_symbols:
-                continue
-            if symbol in used_symbols:
+            if is_blacklisted(symbol) or not symbol.endswith("USDT") or symbol not in active_usdt_symbols or symbol in used_symbols:
                 continue
 
             df = get_data(symbol)
@@ -64,14 +59,23 @@ def send_signals(force=False):
             entry_low = round(entry * 0.995, 4)
             entry_high = round(entry * 1.005, 4)
 
+            # ✅ Calculate ATR for TP1/TP2
+            atr = AverageTrueRange(
+                high=df["high"],
+                low=df["low"],
+                close=df["close"],
+                window=14
+            ).average_true_range().iloc[-1]
+
+            # ✅ Calculate TP1, TP2 and SL using ATR
             if signal == "LONG":
                 sl = round(entry_high * 0.985, 4)
-                tp1 = round(entry * 1.06, 4)
-                tp2 = round(entry * 1.1, 4)
+                tp1 = round(entry + atr, 4)
+                tp2 = round(entry + 2 * atr, 4)
             else:
                 sl = round(entry_low * 1.015, 4)
-                tp1 = round(entry * 0.94, 4)
-                tp2 = round(entry * 0.9, 4)
+                tp1 = round(entry - atr, 4)
+                tp2 = round(entry - 2 * atr, 4)
 
             message = (
                 f"{emoji} {symbol} (1h)\n"
