@@ -22,11 +22,10 @@ def send_signals(force=False):
     symbols = get_top_volatile_symbols(limit=100)
     active_usdt_symbols = get_active_usdt_symbols()
     used_symbols = set()
-    count = 0
+    messages = []
 
     top_score = -1
     top_pick = None
-    messages = []
 
     for symbol in symbols:
         if is_blacklisted(symbol) or not symbol.endswith("USDT") or symbol not in active_usdt_symbols or symbol in used_symbols:
@@ -37,16 +36,12 @@ def send_signals(force=False):
             continue
 
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
-        print("✅ Raw result:", result)
         if not result:
-            if not force:
-                print(f"{symbol} has no strong signal.")
             continue
 
         score = result["score"]
-        if score < 1:
-            print(f"{symbol} skipped due to low score: {score}")
-            continue
+        if score < 4:
+            continue  # skip low confidence signals
 
         signal = result["type"]
         entry = result["entry"]
@@ -71,13 +66,7 @@ def send_signals(force=False):
         entry_low = round(entry * 0.995, 4)
         entry_high = round(entry * 1.005, 4)
 
-        atr = AverageTrueRange(
-            high=df["high"],
-            low=df["low"],
-            close=df["close"],
-            window=14
-        ).average_true_range().iloc[-1]
-
+        atr = AverageTrueRange(high=df["high"], low=df["low"], close=df["close"], window=14).average_true_range().iloc[-1]
         if signal == "LONG":
             sl = round(entry_high * 0.985, 4)
             tp1 = round(entry + atr, 4)
@@ -101,25 +90,9 @@ def send_signals(force=False):
 
         messages.append((symbol, message))
         used_symbols.add(symbol)
-        count += 1
-
-        trade_result = check_trade_result(
-            symbol=symbol,
-            entry_low=entry_low,
-            entry_high=entry_high,
-            tp1=tp1,
-            tp2=tp2,
-            sl=sl,
-            hours_to_check=3
-        )
-        if trade_result.startswith("❌ SL"):
-            add_to_blacklist(symbol)
-
-        if count >= 8:
-            break
 
     try:
-        if count > 0:
+        if messages:
             for symbol, msg in messages:
                 if symbol == top_pick:
                     msg = "🔝 TOP PICK\n" + msg
