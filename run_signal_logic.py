@@ -119,4 +119,5 @@ def send_signals(force=False):
                 print("📭 No strong signals found. Market is calm.")
                 bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
         except Exception as e:
+            
             print(f"ERROR in send_signals: {e}")
