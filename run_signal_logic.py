@@ -44,7 +44,7 @@ def send_signals(force=False):
             continue
 
         score = result["score"]
-        if score < 4:
+        if score < 1:
             print(f"{symbol} skipped due to low score: {score}")
             continue
 
