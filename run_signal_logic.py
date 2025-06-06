@@ -1,3 +1,16 @@
+from utils import get_data, is_strong_signal, get_active_usdt_symbols
+from get_top_symbols import get_top_volatile_symbols
+from telegram import Bot
+from ta.momentum import RSIIndicator
+from ta.volatility import AverageTrueRange
+from blacklist_manager import is_blacklisted, add_to_blacklist
+from check_trade_result import check_trade_result
+import os
+
+TELEGRAM_TOKEN = '7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs'
+CHAT_ID = 5398864436
+
+bot = Bot(token=TELEGRAM_TOKEN)
 def send_signals(force=False):
     print("Signal function started")
 
