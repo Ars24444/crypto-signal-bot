@@ -21,11 +21,11 @@ def send_signals(force=False):
     symbols = get_top_volatile_symbols(limit=100)
     active_usdt_symbols = get_active_usdt_symbols()
     used_symbols = set()
-    messages = []
+    count = 0
 
     top_score = -1
     top_pick = None
-    count = 0
+    messages = []
 
     for symbol in symbols:
         if is_blacklisted(symbol) or not symbol.endswith("USDT") or symbol not in active_usdt_symbols or symbol in used_symbols:
@@ -38,36 +38,26 @@ def send_signals(force=False):
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
         print("✅ Raw result:", result)
 
-        if not result:
+        # Skip if score < 4 or signal is None or not LONG/SHORT
+        if (
+            not result or
+            result["score"] < 4 or
+            result["type"] not in ["LONG", "SHORT"]
+        ):
+            print(f"{symbol} skipped due to weak score or missing signal: {result}")
             continue
 
         signal = result["type"]
-        score = result["score"]
-
-        # ❌ Skip if signal is not LONG or SHORT
-        if signal not in ["LONG", "SHORT"]:
-            print(f"{symbol} skipped because signal is None or invalid: {signal}")
-            continue
-
-        # ❌ Skip if score is too low
-        if score < 4:
-            print(f"{symbol} skipped because score < 4: {score}")
-            continue
-
         entry = result["entry"]
         tp1 = result["tp1"]
         tp2 = result["tp2"]
         sl = result["sl"]
+        score = result["score"]
         rsi = result["rsi"]
         ma10 = result["ma10"]
         ma30 = result["ma30"]
 
-        if score == 5:
-            emoji = "🔥🔥🔥"
-        elif score == 4:
-            emoji = "🔥"
-        else:
-            emoji = "⚠️"
+        emoji = "🔥🔥🔥" if score == 5 else "🔥"
 
         if score > top_score:
             top_score = score
@@ -84,11 +74,11 @@ def send_signals(force=False):
         ).average_true_range().iloc[-1]
 
         if signal == "LONG":
-            sl = round(entry - 1.2 * atr, 4)
+            sl = round(entry_high * 0.985, 4)
             tp1 = round(entry + atr, 4)
             tp2 = round(entry + 2 * atr, 4)
         else:
-            sl = round(entry + 1.2 * atr, 4)
+            sl = round(entry_low * 1.015, 4)
             tp1 = round(entry - atr, 4)
             tp2 = round(entry - 2 * atr, 4)
 
