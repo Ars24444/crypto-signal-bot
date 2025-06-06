@@ -37,13 +37,14 @@ def send_signals(force=False):
             continue
 
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
+        print("✅ Raw result:", result)
         if not result:
             if not force:
                 print(f"{symbol} has no strong signal.")
             continue
 
         score = result["score"]
-        if score < 2:
+        if score < 4:
             print(f"{symbol} skipped due to low score: {score}")
             continue
 
