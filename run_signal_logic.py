@@ -71,11 +71,11 @@ def send_signals(force=False):
         ).average_true_range().iloc[-1]
 
         if signal == "LONG":
-            sl = round(entry_high * 0.985, 4)
+            sl = round(entry - 1.2 * atr, 4)
             tp1 = round(entry + atr, 4)
             tp2 = round(entry + 2 * atr, 4)
         else:
-            sl = round(entry_low * 1.015, 4)
+            sl = round(entry + 1.2 * atr, 4)
             tp1 = round(entry - atr, 4)
             tp2 = round(entry - 2 * atr, 4)
 
