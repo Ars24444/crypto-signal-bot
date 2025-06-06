@@ -59,7 +59,6 @@ def send_signals(force=False):
             entry_low = round(entry * 0.995, 4)
             entry_high = round(entry * 1.005, 4)
 
-            # ATR for SL, TP1, TP2
             atr = AverageTrueRange(
                 high=df["high"],
                 low=df["low"],
@@ -107,7 +106,7 @@ def send_signals(force=False):
             if count >= 8:
                 break
 
-        # ✅ Final messaging
+        # Final messaging
         try:
             if count > 0:
                 for symbol, msg in messages:
@@ -119,5 +118,4 @@ def send_signals(force=False):
                 print("📭 No strong signals found. Market is calm.")
                 bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
         except Exception as e:
-            
             print(f"ERROR in send_signals: {e}")
