@@ -108,15 +108,14 @@ def send_signals(force=False):
             if count >= 8:
                 break
 
-       if count > 0:
-           for symbol, msg in messages:
-                if symbol == top_pick:
-                    msg = "🔝 TOP PICK\n" + msg
-                print(f"📤 Sending signal for {symbol}:\n{msg}\n")
-                bot.send_message(chat_id=CHAT_ID, text=msg)
-       else:
-           print("📭 No strong signals found. Market is calm.")
-           bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
-
-    except Exception as e:
-        print(f"ERROR in send_signals: {e}")
+            if count > 0:
+                for symbol, msg in messages:
+                    if symbol == top_pick:
+                        msg = "🔝 TOP PICK\n" + msg
+                    print(f"📤 Sending signal for {symbol}:\n{msg}\n")
+                    bot.send_message(chat_id=CHAT_ID, text=msg)
+            else:
+                print("📭 No strong signals found. Market is calm.")
+                bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
+        except Exception as e:
+            print(f"ERROR in send_signals: {e}")
