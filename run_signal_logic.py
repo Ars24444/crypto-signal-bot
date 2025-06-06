@@ -1,6 +1,7 @@
 from utils import get_data, is_strong_signal, get_active_usdt_symbols
 from get_top_symbols import get_top_volatile_symbols
 from telegram import Bot
+from ta.momentum import RSIIndicator
 from blacklist_manager import is_blacklisted, add_to_blacklist
 from check_trade_result import check_trade_result
 import os
@@ -16,6 +17,7 @@ def send_signals(force=False):
 
         btc_df = get_data("BTCUSDT")
         btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-4]) / btc_df["close"].iloc[-4] * 100
+        btc_rsi = RSIIndicator(btc_df["close"]).rsi().iloc[-1]
 
         symbols = get_top_volatile_symbols(limit=100)
         active_usdt_symbols = get_active_usdt_symbols()
@@ -28,23 +30,19 @@ def send_signals(force=False):
 
         for symbol in symbols:
             if is_blacklisted(symbol):
-                print(f"{symbol} is temporarily blacklisted")
                 continue
             if not symbol.endswith("USDT"):
                 continue
             if symbol not in active_usdt_symbols:
-                print(f"{symbol} is not active — skipping.")
                 continue
             if symbol in used_symbols:
                 continue
 
-            print(f"Checking {symbol}")
             df = get_data(symbol)
             if df is None or len(df) < 50:
-                print(f"{symbol} skipped due to insufficient data.")
                 continue
 
-            result = is_strong_signal(df, btc_change_pct, symbol=symbol)
+            result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
             if not result:
                 if not force:
                     print(f"{symbol} has no strong signal.")
@@ -52,7 +50,6 @@ def send_signals(force=False):
 
             signal, rsi, ma10, ma30, entry, score = result
 
-            # Add emoji based on score
             if score == 5:
                 emoji = "🔥🔥🔥"
             elif score == 4:
@@ -66,9 +63,15 @@ def send_signals(force=False):
 
             entry_low = round(entry * 0.995, 4)
             entry_high = round(entry * 1.005, 4)
-            tp1 = round(entry * (1.06 if signal == "LONG" else 0.94), 4)
-            tp2 = round(entry * (1.1 if signal == "LONG" else 0.9), 4)
-            sl = round(entry * (0.99 if signal == "LONG" else 1.01), 4)
+
+            if signal == "LONG":
+                sl = round(entry_high * 0.985, 4)
+                tp1 = round(entry * 1.06, 4)
+                tp2 = round(entry * 1.1, 4)
+            else:
+                sl = round(entry_low * 1.015, 4)
+                tp1 = round(entry * 0.94, 4)
+                tp2 = round(entry * 0.9, 4)
 
             message = (
                 f"{emoji} {symbol} (1h)\n"
@@ -86,7 +89,6 @@ def send_signals(force=False):
             used_symbols.add(symbol)
             count += 1
 
-            # ✅ Check TP/SL result and blacklist if SL hit
             trade_result = check_trade_result(
                 symbol=symbol,
                 entry_low=entry_low,
@@ -96,7 +98,6 @@ def send_signals(force=False):
                 sl=sl,
                 hours_to_check=3
             )
-            print(f"{symbol} result: {trade_result}")
             if trade_result.startswith("❌ SL"):
                 add_to_blacklist(symbol)
 
@@ -112,4 +113,4 @@ def send_signals(force=False):
             bot.send_message(chat_id=CHAT_ID, text="📭 No strong signals found. Market is calm.")
 
     except Exception as e:
-        print(f"❌ ERROR in send_signals: {e}")
+        print(f"ERROR in send_signals: {e}")
