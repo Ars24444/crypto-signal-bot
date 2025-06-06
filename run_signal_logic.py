@@ -106,8 +106,8 @@ def send_signals(force=False):
                 add_to_blacklist(symbol)
 
             if count >= 8:
-                break
-
+                break        
+        try:     
             if count > 0:
                 for symbol, msg in messages:
                     if symbol == top_pick:
