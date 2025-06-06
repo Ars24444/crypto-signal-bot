@@ -43,7 +43,15 @@ def send_signals(force=False):
                 print(f"{symbol} has no strong signal.")
             continue
 
-        signal, rsi, ma10, ma30, entry, score = result
+        signal = result["type"]
+        entry = result["entry"]
+        tp1 = result["tp1"]
+        tp2 = result["tp2"]
+        sl = result["sl"]
+        score = result["score"]
+        rsi = result["rsi"]
+        ma10 = result["ma10"]
+        ma30 = result["ma30"]
 
         if score == 5:
             emoji = "🔥🔥🔥"
