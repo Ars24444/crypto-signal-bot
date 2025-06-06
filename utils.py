@@ -180,6 +180,27 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     if direction and not is_safe_last_candle(df, signal_type=direction):
         print(f"{symbol} skipped: last candle not safe for {direction}")
         return None
+    true_range = df[["high", "low", "close"]].copy()
+    true_range["previous_close"] = true_range["close"].shift(1)
+    true_range["tr"] = true_range[["high", "low", "previous_close"]].apply(
+        lambda row: max(
+            row["high"] - row["low"],
+            abs(row["high"] - row["previous_close"]),
+            abs(row["low"] - row["previous_close"])
+        ),
+        axis=1
+    )
+    atr = true_range["tr"].rolling(window=14).mean().iloc[-1]
+    entry = df["close"].iloc[-1]
+
+    if direction == "LONG":
+        tp1 = entry + 1.2 * atr
+        tp2 = entry + 2.0 * atr
+        sl = entry - 1.0 * atr
+    else:
+        tp1 = entry - 1.2 * atr
+        tp2 = entry - 2.0 * atr
+        sl = entry + 1.0 * atr
         return {
             "type": direction,
             "entry": round(entry, 4),
