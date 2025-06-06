@@ -1,8 +1,8 @@
-from ta.trend import SMAIndicator
-from ta.momentum import RSIIndicator
 import requests
 import pandas as pd
 import time
+from ta.trend import SMAIndicator
+from ta.momentum import RSIIndicator
 
 # Get historical kline data from Binance
 def get_data(symbol, interval='1h', limit=100):
@@ -39,28 +39,28 @@ def get_active_usdt_symbols():
 def has_minimum_long_short_trades(symbol, min_each=50):
     url = "https://fapi.binance.com/fapi/v1/aggTrades"
     end_time = int(time.time() * 1000)
-    start_time = end_time - (15 * 60 * 1000)  # last 15 minutes
+    start_time = end_time - (15 * 60 * 1000)
 
     params = {
         "symbol": symbol,
         "startTime": start_time,
         "endTime": end_time,
         "limit": 1000
-    }
+       }
 
     try:
         response = requests.get(url, params=params)
         trades = response.json()
-        
+
         if not isinstance(trades, list):
             print(f"{symbol} skipped: unexpected response (not a list): {trades}")
             return False
-            
+
         long_count = 0
         short_count = 0
 
         for trade in trades:
-            if trade['m']:  # maker = seller → buyer opened = LONG
+            if trade['m']:
                 short_count += 1
             else:
                 long_count += 1
@@ -70,17 +70,18 @@ def has_minimum_long_short_trades(symbol, min_each=50):
     except Exception as e:
         print(f"Error fetching trade data for {symbol}: {e}")
         return False
-def is_strong_signal(df, btc_change_pct=0, symbol=None):
+
+# Main signal detection function
+def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     if df is None or len(df) < 30:
         return None
 
     if symbol and not has_minimum_long_short_trades(symbol):
-        print(f"{symbol} skipped due to low real trade activity (less than 50 long/short trades)")
+        print(f"{symbol} skipped due to low real trade activity")
         return None
 
     close = df['close']
     volume = df['volume']
-
     ma10 = SMAIndicator(close, window=10).sma_indicator()
     ma30 = SMAIndicator(close, window=30).sma_indicator()
     rsi = RSIIndicator(close, window=14).rsi()
@@ -94,12 +95,10 @@ def is_strong_signal(df, btc_change_pct=0, symbol=None):
     last_ma10 = ma10.iloc[-1]
     last_ma30 = ma30.iloc[-1]
     current_volume = volume.iloc[-1]
-    avg_volume = volume.iloc[-10:].mean()
+    avg_volume = volume[-10:].mean()
 
     bearish_candles = last_close < last_open and prev_close < prev_open
     bullish_candles = last_close > last_open and prev_close > prev_open
-
-    # ➕ NEW: detect real price direction in last candle
     last_candle_direction = 'UP' if last_close > last_open else 'DOWN'
 
     score = 0
@@ -128,20 +127,25 @@ def is_strong_signal(df, btc_change_pct=0, symbol=None):
     elif direction == 'LONG' and btc_change_pct >= 0:
         score += 1
 
-    # ➕ NEW: avoid signal if it contradicts last candle
     if direction == 'SHORT' and last_candle_direction == 'UP':
-        print(f"{symbol} skipped: SHORT signal contradicts green candle")
+        print(f"{symbol} skipped: SHORT contradicts green candle")
         return None
     elif direction == 'LONG' and last_candle_direction == 'DOWN':
-        print(f"{symbol} skipped: LONG signal contradicts red candle")
+        print(f"{symbol} skipped: LONG contradicts red candle")
         return None
 
-    # BTC trend filter
     if btc_change_pct > 1.2 and direction == 'SHORT':
-        print(f"{symbol} skipped due to BTC uptrend ({btc_change_pct}%) blocking SHORT")
+        print(f"{symbol} skipped due to BTC uptrend blocking SHORT")
         return None
     elif btc_change_pct < -1.2 and direction == 'LONG':
-        print(f"{symbol} skipped due to BTC downtrend ({btc_change_pct}%) blocking LONG")
+        print(f"{symbol} skipped due to BTC downtrend blocking LONG")
+        return None
+
+    if btc_change_pct < -2.5 and btc_rsi < 35 and direction == 'SHORT':
+        print(f"{symbol} skipped: BTC oversold, SHORT blocked")
+        return None
+    if btc_change_pct > 2.5 and btc_rsi > 65 and direction == 'LONG':
+        print(f"{symbol} skipped: BTC overbought, LONG blocked")
         return None
 
     if score >= 4 and direction:
