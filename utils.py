@@ -4,7 +4,33 @@ import time
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 
-# Get historical kline data from Binance
+# ✅ Վերջին մոմի կառուցվածքի վերլուծություն LONG/SHORT ֆիլտրման համար
+def is_safe_last_candle(df, signal_type="LONG"):
+    open_price = df['open'].iloc[-1]
+    close_price = df['close'].iloc[-1]
+    high_price = df['high'].iloc[-1]
+    low_price = df['low'].iloc[-1]
+
+    body = abs(close_price - open_price)
+    upper_shadow = high_price - max(open_price, close_price)
+    lower_shadow = min(open_price, close_price) - low_price
+    total_range = high_price - low_price
+
+    if total_range == 0:
+        return False
+
+    body_ratio = body / total_range
+    upper_shadow_ratio = upper_shadow / total_range
+    lower_shadow_ratio = lower_shadow / total_range
+
+    if signal_type == "LONG":
+        return body_ratio >= 0.3 and upper_shadow_ratio < 0.4
+    elif signal_type == "SHORT":
+        return body_ratio >= 0.3 and lower_shadow_ratio < 0.4
+
+    return False
+
+# ✅ Get historical kline data from Binance
 def get_data(symbol, interval='1h', limit=100):
     url = "https://api.binance.com/api/v3/klines"
     params = {
@@ -23,7 +49,7 @@ def get_data(symbol, interval='1h', limit=100):
     df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
     return df
 
-# Get only active USDT trading pairs from Binance
+# ✅ Get only active USDT trading pairs from Binance
 def get_active_usdt_symbols():
     url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(url)
@@ -35,7 +61,7 @@ def get_active_usdt_symbols():
             symbols.append(s["symbol"])
     return symbols
 
-# Check if there are at least N long and N short trades in last 15min from Binance Futures
+# ✅ Check if there are at least N long and N short trades in last 15min from Binance Futures
 def has_minimum_long_short_trades(symbol, min_each=50):
     url = "https://fapi.binance.com/fapi/v1/aggTrades"
     end_time = int(time.time() * 1000)
@@ -46,7 +72,7 @@ def has_minimum_long_short_trades(symbol, min_each=50):
         "startTime": start_time,
         "endTime": end_time,
         "limit": 1000
-       }
+    }
 
     try:
         response = requests.get(url, params=params)
@@ -71,7 +97,7 @@ def has_minimum_long_short_trades(symbol, min_each=50):
         print(f"Error fetching trade data for {symbol}: {e}")
         return False
 
-# Main signal detection function
+# ✅ Main signal detection function
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     if df is None or len(df) < 30:
         return None
@@ -107,9 +133,12 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     if last_rsi < 35:
         score += 1
         direction = 'SHORT'
-    elif last_rsi > 65:
+    elif 65 < last_rsi < 70:
         score += 1
         direction = 'LONG'
+    elif last_rsi >= 70:
+        print(f"{symbol} skipped: RSI too high")
+        return None
 
     if abs(last_ma10 - last_ma30) / last_ma30 > 0.007:
         score += 1
@@ -146,6 +175,11 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
         return None
     if btc_change_pct > 2.5 and btc_rsi > 65 and direction == 'LONG':
         print(f"{symbol} skipped: BTC overbought, LONG blocked")
+        return None
+
+    # ✅ Վերջին մոմի անվտանգությունը ստուգենք ըստ ուղղության
+    if direction and not is_safe_last_candle(df, signal_type=direction):
+        print(f"{symbol} skipped: last candle not safe for {direction}")
         return None
 
     if score >= 4 and direction:
