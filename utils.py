@@ -1,5 +1,31 @@
+import requests
+import pandas as pd
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
+
+def get_data(symbol, interval='1h', limit=100):
+    url = 'https://api.binance.com/api/v3/klines'
+    params = {
+        'symbol': symbol,
+        'interval': interval,
+        'limit': limit
+    }
+    response = requests.get(url, params=params)
+
+    if response.status_code != 200:
+        return None
+
+    data = response.json()
+    if not isinstance(data, list):
+        return None
+
+    df = pd.DataFrame(data, columns=[
+        'timestamp', 'open', 'high', 'low', 'close', 'volume',
+        'close_time', 'quote_asset_volume', 'num_trades',
+        'taker_buy_base', 'taker_buy_quote', 'ignore'
+    ])
+    df[['open', 'high', 'low', 'close', 'volume']] = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
+    return df
 
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
@@ -75,12 +101,14 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         print(f"{symbol} skipped: BTC overbought, LONG blocked")
         return None
 
-    # OPTIONAL: safe candle checker, define this separately
-    if direction and not is_safe_last_candle(df, signal_type=direction):
-        print(f"{symbol} skipped: last candle not safe for {direction}")
-        return None
+    try:
+        from safe_candle_checker import is_safe_last_candle
+        if direction and not is_safe_last_candle(df, signal_type=direction):
+            print(f"{symbol} skipped: last candle not safe for {direction}")
+            return None
+    except ImportError:
+        pass
 
-    # ATR հաշվարկ
     true_range = df[["high", "low", "close"]].copy()
     true_range["previous_close"] = true_range["close"].shift(1)
     true_range["tr"] = true_range[["high", "low", "previous_close"]].apply(
@@ -92,7 +120,10 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         axis=1
     )
     atr = true_range["tr"].rolling(window=14).mean().iloc[-1]
-    entry = df["close"].iloc[-1]
+    entry = df["close"].
+
+Ars, [08.06.2025 2:13]
+iloc[-1]
 
     if direction == "LONG":
         tp1 = entry + 1.2 * atr
