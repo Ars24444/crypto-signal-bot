@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 
-def get_klines(symbol, interval='1h', limit=100):
+def get_data(symbol, interval='1h', limit=100):
     url = 'https://api.binance.com/api/v3/klines'
     params = {
         'symbol': symbol,
@@ -9,7 +9,7 @@ def get_klines(symbol, interval='1h', limit=100):
         'limit': limit
     }
     response = requests.get(url, params=params)
-    
+
     if response.status_code != 200:
         return None
 
@@ -18,12 +18,10 @@ def get_klines(symbol, interval='1h', limit=100):
         return None
 
     df = pd.DataFrame(data, columns=[
-        'Open_time', 'Open', 'High', 'Low', 'Close', 'Volume',
-        'Close_time', 'Quote_asset_volume', 'Number_of_trades',
-        'Taker_buy_base_asset_volume', 'Taker_buy_quote_asset_volume', 'Ignore'
+        'timestamp', 'open', 'high', 'low', 'close', 'volume',
+        'close_time', 'quote_asset_volume', 'num_trades',
+        'taker_buy_base', 'taker_buy_quote', 'ignore'
     ])
 
-    df['Close'] = pd.to_numeric(df['Close'])
-    df['Volume'] = pd.to_numeric(df['Volume'])
-    
+    df[['open', 'high', 'low', 'close', 'volume']] = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
     return df
