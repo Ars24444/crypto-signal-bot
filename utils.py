@@ -1,4 +1,3 @@
-Ars, [08.06.2025 2:32]
 import requests
 import pandas as pd
 from ta.trend import SMAIndicator
