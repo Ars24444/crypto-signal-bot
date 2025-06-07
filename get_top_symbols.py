@@ -1,9 +1,6 @@
 import requests
 
-def get_active_symbols_by_trades(symbols, interval='15m', limit=1, min_buy_volume=50, min_sell_volume=50):
-    """
-    Filters symbols based on minimum taker buy/sell volume in the last 15m.
-    """
+def get_active_symbols_by_trades(symbols, interval='15m', limit=1, min_buy_volume=100, min_sell_volume=100):
     active_symbols = []
     for symbol in symbols:
         try:
@@ -29,9 +26,6 @@ def get_active_symbols_by_trades(symbols, interval='15m', limit=1, min_buy_volum
 
 
 def get_top_volatile_symbols(limit=100, min_volume_usdt=1_000_000):
-    """
-    Returns top volatile USDT symbols (spot only) with strong volume and activity.
-    """
     try:
         url = "https://api.binance.com/api/v3/ticker/24hr"
         response = requests.get(url, timeout=10)
@@ -49,14 +43,12 @@ def get_top_volatile_symbols(limit=100, min_volume_usdt=1_000_000):
         quote_volume = float(d.get('quoteVolume', 0))
         price_change_pct = abs(float(d.get('priceChangePercent', 0)))
 
-        # USDT spot only, exclude leveraged or exotic tokens
         if (
             not symbol.endswith("USDT") or
-            any(exclude in symbol for exclude in ["UP", "DOWN", "BULL", "BEAR", "BUSD", "TRY", "EUR", "1000"])
+            any(x in symbol for x in ["UP", "DOWN", "BULL", "BEAR", "BUSD", "TRY", "EUR", "1000"]) or
+            quote_volume < min_volume_usdt or
+            price_change_pct < 3  # 🟢 important: remove flat coins
         ):
-            continue
-
-        if quote_volume < min_volume_usdt:
             continue
 
         symbols.append({
@@ -64,9 +56,7 @@ def get_top_volatile_symbols(limit=100, min_volume_usdt=1_000_000):
             "priceChangePercent": price_change_pct
         })
 
-    # Sort and return only top X volatile
     sorted_symbols = sorted(symbols, key=lambda x: x['priceChangePercent'], reverse=True)
     volatile_symbols = [s['symbol'] for s in sorted_symbols[:limit]]
 
-    # Filter further by taker buy/sell activity
     return get_active_symbols_by_trades(volatile_symbols)
