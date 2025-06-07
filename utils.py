@@ -120,7 +120,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         axis=1
     )
     atr = true_range["tr"].rolling(window=14).mean().iloc[-1]
-    entry = df["close"].
+    entry = df["close"].iloc[-1]
 
 Ars, [08.06.2025 2:13]
 iloc[-1]
