@@ -63,8 +63,8 @@ def send_signals(force=False):
             top_score = score
             top_pick = symbol
 
-        entry_low = round(entry * 0.995, 4)
-        entry_high = round(entry * 1.005, 4)
+        entry_low = round(df["low"].iloc[-1] * 0.999, 4)
+        entry_high = round(df["high"].iloc[-1] * 1.001, 4)
 
         atr = AverageTrueRange(
             high=df["high"],
