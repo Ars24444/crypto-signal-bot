@@ -1,7 +1,9 @@
+Ars, [08.06.2025 2:32]
 import requests
 import pandas as pd
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
+from get_top_symbols import get_active_symbols_by_trades
 
 def get_data(symbol, interval='1h', limit=100):
     url = 'https://api.binance.com/api/v3/klines'
@@ -26,6 +28,22 @@ def get_data(symbol, interval='1h', limit=100):
     ])
     df[['open', 'high', 'low', 'close', 'volume']] = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
     return df
+
+def get_active_usdt_symbols():
+    url = "https://api.binance.com/api/v3/exchangeInfo"
+    response = requests.get(url)
+    data = response.json()
+
+    usdt_symbols = []
+    for s in data['symbols']:
+        if (
+            s['quoteAsset'] == 'USDT' and
+            s['status'] == 'TRADING' and
+            not any(x in s['symbol'] for x in ['UP', 'DOWN', 'BULL', 'BEAR', 'BUSD', 'TRY', 'EUR', '1000'])
+        ):
+            usdt_symbols.append(s['symbol'])
+
+    return get_active_symbols_by_trades(usdt_symbols)
 
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
@@ -121,7 +139,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     )
     atr = true_range["tr"].rolling(window=14).mean().iloc[-1]
     entry = df["close"].iloc[-1]
-
 
     if direction == "LONG":
         tp1 = entry + 1.2 * atr
