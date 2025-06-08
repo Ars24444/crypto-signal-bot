@@ -1,6 +1,6 @@
 import requests
 
-def get_active_symbols_by_trades(symbols, interval='15m', limit=1, min_buy_volume=100, min_sell_volume=100):
+def get_active_symbols_by_trades(symbols, interval='15m', limit=1, min_buy_volume=20, min_sell_volume=20):
     active_symbols = []
     for symbol in symbols:
         try:
@@ -21,11 +21,10 @@ def get_active_symbols_by_trades(symbols, interval='15m', limit=1, min_buy_volum
             if taker_buy_volume >= min_buy_volume and taker_sell_volume >= min_sell_volume:
                 active_symbols.append(symbol)
         except Exception as e:
-            print(f"Error checking {symbol}: {e}")
+            print(f"⚠️ Error checking {symbol}: {e}")
     return active_symbols
 
-
-def get_top_volatile_symbols(limit=100, min_volume_usdt=1_000_000):
+def get_top_volatile_symbols(limit=100, min_volume_usdt=300_000):  # ավելի թույլ շեմ
     try:
         url = "https://api.binance.com/api/v3/ticker/24hr"
         response = requests.get(url, timeout=10)
@@ -34,7 +33,7 @@ def get_top_volatile_symbols(limit=100, min_volume_usdt=1_000_000):
 
         data = response.json()
     except Exception as e:
-        print(f"Error fetching tickers: {e}")
+        print(f"⚠️ Error fetching tickers: {e}")
         return []
 
     symbols = []
@@ -47,7 +46,7 @@ def get_top_volatile_symbols(limit=100, min_volume_usdt=1_000_000):
             not symbol.endswith("USDT") or
             any(x in symbol for x in ["UP", "DOWN", "BULL", "BEAR", "BUSD", "TRY", "EUR", "1000"]) or
             quote_volume < min_volume_usdt or
-            price_change_pct < 3  # 🟢 important: remove flat coins
+            price_change_pct < 3
         ):
             continue
 
