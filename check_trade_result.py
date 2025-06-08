@@ -1,62 +1,36 @@
-import json
-import os
-from utils import get_data
-from telegram import Bot
+import requests
+import pandas as pd
 
-TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
-CHAT_ID = 5398864436
+def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, interval='1h', candles_to_check=3):
+    try:
+        url = "https://api.binance.com/api/v3/klines"
+        params = {
+            "symbol": symbol,
+            "interval": interval,
+            "limit": candles_to_check
+        }
+        response = requests.get(url, params=params)
+        data = response.json()
 
-bot = Bot(token=TELEGRAM_TOKEN)
+        highs = [float(candle[2]) for candle in data]
+        lows = [float(candle[3]) for candle in data]
 
-def check_trade_result():
-    if not os.path.exists("signal_log.json"):
-        print("No signal log found.")
-        return
-
-    with open("signal_log.json", "r") as f:
-        signals = json.load(f)
-
-    results = []
-
-    for symbol, info in signals.items():
-        if info.get("checked"):
-            continue  # Already checked
-
-        df = get_data(symbol)
-        if df is None or len(df) < 2:
-            continue
-
-        future_df = df.iloc[-2:]  # check last 2 candles
-        high = future_df["high"].max()
-        low = future_df["low"].min()
-
-        entry = info["entry"]
-        tp1 = info["tp1"]
-        tp2 = info["tp2"]
-        sl = info["sl"]
-        signal_type = info["type"]
-
-        result = "❓ Unknown"
-        if signal_type == "LONG":
-            if sl != 0 and low <= sl:
-                result = "❌ SL hit"
-            elif tp2 != 0 and high >= tp2:
-                result = "🏁 TP2 hit"
-            elif tp1 != 0 and high >= tp1:
-                result = "✅ TP1 hit"
-        elif signal_type == "SHORT":
-            if sl != 0 and high >= sl:
-                result = "❌ SL hit"
-            elif tp2 != 0 and low <= tp2:
-                result = "🏁 TP2 hit"
-            elif tp1 != 0 and low <= tp1:
-                result = "✅ TP1 hit"
-
-        text = f"📊 {symbol} (1h) Result: {result}\nEntry: {entry}, TP1: {tp1}, TP2: {tp2}, SL: {sl}"
-        print(text)
-        bot.send_message(chat_id=CHAT_ID, text=text)
-
-        signals[symbol]["checked"] = True  # Mark as checked
-
-    with open("signal_log.json", "w") as f:
-        json.dump(signals, f, indent=2)
+        for high, low in zip(highs, lows):
+            if signal_type == "LONG":
+                if low <= sl:
+                    return "SL"
+                elif high >= tp2:
+                    return "TP2"
+                elif high >= tp1:
+                    return "TP1"
+            elif signal_type == "SHORT":
+                if high >= sl:
+                    return "SL"
+                elif low <= tp2:
+                    return "TP2"
+                elif low <= tp1:
+                    return "TP1"
+        return "UNKNOWN"
+    except Exception as e:
+        print(f"Error checking result for {symbol}: {e}")
+        return "ERROR"
