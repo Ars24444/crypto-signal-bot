@@ -1,7 +1,7 @@
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
-import numpy as np
+import numpy as pd
 
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
