@@ -1,54 +1,62 @@
-import time
-import requests
-import pandas as pd
+import json
+import os
+from utils import get_data
+from telegram import Bot
 
-def get_price_history(symbol, interval='1h', limit=5):
-    try:
-        url = "https://api.binance.com/api/v3/klines"
-        params = {
-            "symbol": symbol,
-            "interval": interval,
-            "limit": limit
-        }
-        response = requests.get(url, params=params, timeout=10)
-        if response.status_code != 200:
-            return None
-        data = response.json()
-        df = pd.DataFrame(data, columns=[
-            "timestamp", "open", "high", "low", "close", "volume",
-            "close_time", "quote_asset_volume", "num_trades",
-            "taker_buy_base", "taker_buy_quote", "ignore"
-        ])
-        df[["open", "high", "low", "close"]] = df[["open", "high", "low", "close"]].astype(float)
-        return df
-    except Exception as e:
-        print(f"⚠️ Error fetching price history for {symbol}: {e}")
-        return None
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 
-def check_trade_result(symbol, entry_low, entry_high, tp1, tp2, sl, hours_to_check=3):
-    df = get_price_history(symbol, interval='1h', limit=hours_to_check)
-    if df is None or len(df) == 0:
-        return "⚠️ No data to check"
+bot = Bot(token=TELEGRAM_TOKEN)
 
-    is_short = tp1 < entry_low and tp2 < tp1  # crude logic to detect short vs long
+def check_trade_result():
+    if not os.path.exists("signal_log.json"):
+        print("No signal log found.")
+        return
 
-    for i in range(len(df)):
-        high = df.iloc[i]['high']
-        low = df.iloc[i]['low']
+    with open("signal_log.json", "r") as f:
+        signals = json.load(f)
 
-        if is_short:
-            if low <= tp2:
-                return f"✅ TP2 Hit (within {i+1}h)"
-            elif low <= tp1:
-                return f"✅ TP1 Hit (within {i+1}h)"
-            elif high >= sl:
-                return f"❌ SL Hit (within {i+1}h)"
-        else:
-            if high >= tp2:
-                return f"✅ TP2 Hit (within {i+1}h)"
-            elif high >= tp1:
-                return f"✅ TP1 Hit (within {i+1}h)"
-            elif low <= sl:
-                return f"❌ SL Hit (within {i+1}h)"
+    results = []
 
-    return "⏳ No TP/SL Hit Yet"
+    for symbol, info in signals.items():
+        if info.get("checked"):
+            continue  # Already checked
+
+        df = get_data(symbol)
+        if df is None or len(df) < 2:
+            continue
+
+        future_df = df.iloc[-2:]  # check last 2 candles
+        high = future_df["high"].max()
+        low = future_df["low"].min()
+
+        entry = info["entry"]
+        tp1 = info["tp1"]
+        tp2 = info["tp2"]
+        sl = info["sl"]
+        signal_type = info["type"]
+
+        result = "❓ Unknown"
+        if signal_type == "LONG":
+            if sl != 0 and low <= sl:
+                result = "❌ SL hit"
+            elif tp2 != 0 and high >= tp2:
+                result = "🏁 TP2 hit"
+            elif tp1 != 0 and high >= tp1:
+                result = "✅ TP1 hit"
+        elif signal_type == "SHORT":
+            if sl != 0 and high >= sl:
+                result = "❌ SL hit"
+            elif tp2 != 0 and low <= tp2:
+                result = "🏁 TP2 hit"
+            elif tp1 != 0 and low <= tp1:
+                result = "✅ TP1 hit"
+
+        text = f"📊 {symbol} (1h) Result: {result}\nEntry: {entry}, TP1: {tp1}, TP2: {tp2}, SL: {sl}"
+        print(text)
+        bot.send_message(chat_id=CHAT_ID, text=text)
+
+        signals[symbol]["checked"] = True  # Mark as checked
+
+    with open("signal_log.json", "w") as f:
+        json.dump(signals, f, indent=2)
