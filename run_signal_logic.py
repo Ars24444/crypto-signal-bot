@@ -28,22 +28,23 @@ def send_signals(force=False):
     messages = []
 
     for symbol in symbols:
-        if is_blacklisted(symbol) or not symbol.endswith("USDT") or symbol not in active_usdt_symbols or symbol in used_symbols:
+        if symbol in used_symbols:
+            continue
+        if not symbol.endswith("USDT"):
+            continue
+        if symbol not in active_usdt_symbols:
+            continue
+        if is_blacklisted(symbol):
             continue
 
         df = get_data(symbol)
-        if df is None or len(df) < 50:
+        if df is None or len(df) < 50 or df["close"].iloc[-1] == 0:
             continue
 
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
         print("✅ Raw result:", result)
 
-        if (
-            not result or
-            result["score"] < 4 or
-            result["type"] not in ["LONG", "SHORT"]
-        ):
-            print(f"{symbol} skipped due to weak score or missing signal: {result}")
+        if not result or result["score"] < 4 or result["type"] not in ["LONG", "SHORT"]:
             continue
 
         signal = result["type"]
@@ -65,6 +66,11 @@ def send_signals(force=False):
             sl = round(entry_low * 1.015, 4)
             tp1 = round(entry - atr, 4)
             tp2 = round(entry - 2 * atr, 4)
+
+        # ✅ Top pick setup
+        if score > top_score:
+            top_score = score
+            top_pick = symbol
 
         emoji = "🔥🔥🔥" if score == 5 else "🔥"
         message = (
