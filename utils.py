@@ -124,3 +124,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         "ma10": round(last_ma10, 4),
         "ma30": round(last_ma30, 4)
     }
+def get_active_usdt_symbols():
+    from get_top_symbols import get_top_volatile_symbols
+    return get_top_volatile_symbols(limit=100)
