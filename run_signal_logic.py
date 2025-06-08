@@ -68,7 +68,6 @@ def send_signals(force=False):
             tp1 = round(entry - atr, 4)
             tp2 = round(entry - 2 * atr, 4)
 
-        # ✅ Top pick setup
         if score > top_score:
             top_score = score
             top_pick = symbol
@@ -85,6 +84,15 @@ def send_signals(force=False):
             f"TP2: {tp2}\n"
             f"SL: {sl}"
         )
+
+        # ✅ Log the signal for result tracking
+        log_sent_signal(symbol, {
+            "type": signal,
+            "entry": entry,
+            "tp1": tp1,
+            "tp2": tp2,
+            "sl": sl
+        })
 
         messages.append((symbol, message))
         used_symbols.add(symbol)
