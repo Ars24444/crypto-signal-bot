@@ -5,6 +5,7 @@ from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
 from blacklist_manager import is_blacklisted, add_to_blacklist
 from check_trade_result import check_trade_result
+from signal_logger import log_sent_signal
 import os
 
 TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
