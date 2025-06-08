@@ -3,8 +3,8 @@ import os
 from utils import get_data
 from telegram import Bot
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
+CHAT_ID = 5398864436
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
