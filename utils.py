@@ -55,42 +55,57 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     direction = None
     score = 0
 
+    # === Direction decision based on RSI ===
     if last_rsi < 35:
         direction = "SHORT"
         score += 1
-    elif last_rsi > 65 and last_rsi < 70:
+    elif 65 < last_rsi < 70:
         direction = "LONG"
         score += 1
     else:
         return None
 
+    # === BTC filter ===
+    if direction == "LONG" and btc_change_pct < -0.8:
+        return None
+    if direction == "SHORT" and btc_change_pct > 0.8:
+        return None
+
+    # === MA trend ===
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
         score += 1
 
-    if current_volume > 1.2 * avg_volume and current_volume < 3.5 * avg_volume:
+    # === Volume condition ===
+    if current_volume > 1.5 * avg_volume:
         score += 1
 
+    # === Candle structure ===
     if (direction == "LONG" and bullish_candles) or (direction == "SHORT" and bearish_candles):
         score += 1
 
-    if (direction == "LONG" and btc_change_pct >= -0.5) or (direction == "SHORT" and btc_change_pct <= 0.5):
+    # === BTC trend alignment ===
+    if (direction == "LONG" and btc_change_pct > 0.5) or (direction == "SHORT" and btc_change_pct < -0.5):
         score += 1
 
+    # === Reject overbought/oversold ===
     if direction == "LONG" and last_rsi >= 70:
         return None
     if direction == "SHORT" and last_rsi <= 30:
         return None
 
+    # === Reject extreme BTC trend ===
     if direction == "LONG" and btc_change_pct > 2.5 and btc_rsi > 65:
         return None
     if direction == "SHORT" and btc_change_pct < -2.5 and btc_rsi < 35:
         return None
 
+    # === Reject bad last candle ===
     if direction == "LONG" and last_close < last_open:
         return None
     if direction == "SHORT" and last_close > last_open:
         return None
 
+    # === Optional custom candle filter ===
     try:
         from safe_candle_checker import is_safe_last_candle
         if not is_safe_last_candle(df, signal_type=direction):
@@ -98,6 +113,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     except:
         pass
 
+    # === ATR-based TP/SL ===
     atr = AverageTrueRange(high, low, close).average_true_range().iloc[-1]
     entry = last_close
 
@@ -124,6 +140,3 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         "ma10": round(last_ma10, 4),
         "ma30": round(last_ma30, 4)
     }
-def get_active_usdt_symbols():
-    from get_top_symbols import get_top_volatile_symbols
-    return get_top_volatile_symbols(limit=100)
