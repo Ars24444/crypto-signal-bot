@@ -6,6 +6,8 @@ from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
 
+from orderbook_filter import is_orderbook_safe  # ✅ moved to top
+
 def get_data(symbol, interval='1h', limit=100):
     url = 'https://api.binance.com/api/v3/klines'
     params = {
@@ -29,11 +31,11 @@ def get_data(symbol, interval='1h', limit=100):
     df[['open', 'high', 'low', 'close', 'volume']] = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
     return df
 
-    from orderbook_filter import is_orderbook_safe
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
         return None
-    # Reject if orderbook is too weak or manipulated
+
+    # ✅ Reject if orderbook is too weak or manipulated
     if not is_orderbook_safe(symbol):
         return None
 
@@ -51,7 +53,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     last_ma10 = SMAIndicator(close, window=10).sma_indicator().iloc[-1]
     last_ma30 = SMAIndicator(close, window=30).sma_indicator().iloc[-1]
 
-    # ✅ Reject if MA values are zero or NaN
     if np.isnan(last_ma10) or np.isnan(last_ma30):
         return None
     if last_ma10 == 0 or last_ma30 == 0:
@@ -66,7 +67,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     direction = None
     score = 0
 
-    # === Direction decision based on RSI ===
     if last_rsi < 35:
         direction = "SHORT"
         score += 1
@@ -76,47 +76,38 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    # === BTC trend filter (stricter) ===
     if direction == "LONG" and (btc_change_pct < -0.5 or btc_rsi < 45):
         return None
     if direction == "SHORT" and (btc_change_pct > 0.5 or btc_rsi > 55):
         return None
 
-    # === MA trend ===
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
         score += 1
 
-    # === Volume condition ===
     if current_volume > 1.5 * avg_volume:
         score += 1
 
-    # === Candle structure ===
     if (direction == "LONG" and bullish_candles) or (direction == "SHORT" and bearish_candles):
         score += 1
 
-    # === BTC trend alignment ===
     if (direction == "LONG" and btc_change_pct > 0.5) or (direction == "SHORT" and btc_change_pct < -0.5):
         score += 1
 
-    # === Reject overbought/oversold ===
     if direction == "LONG" and last_rsi >= 70:
         return None
     if direction == "SHORT" and last_rsi <= 30:
         return None
 
-    # === Reject extreme BTC trend ===
     if direction == "LONG" and btc_change_pct > 2.5 and btc_rsi > 65:
         return None
     if direction == "SHORT" and btc_change_pct < -2.5 and btc_rsi < 35:
         return None
 
-    # === Reject bad last candle ===
     if direction == "LONG" and last_close < last_open:
         return None
     if direction == "SHORT" and last_close > last_open:
         return None
 
-    # === Optional custom candle filter ===
     try:
         from safe_candle_checker import is_safe_last_candle
         if not is_safe_last_candle(df, signal_type=direction):
@@ -124,7 +115,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     except:
         pass
 
-    # === ATR-based TP/SL ===
     atr = AverageTrueRange(high, low, close).average_true_range().iloc[-1]
     entry = last_close
 
@@ -148,9 +138,10 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         "sl": round(sl, 4),
         "score": score,
         "rsi": round(last_rsi, 2),
-        "ma10": round(last_ma10, 4),
+    "ma10": round(last_ma10, 4),
         "ma30": round(last_ma30, 4)
     }
+
 def get_active_usdt_symbols():
     from get_top_symbols import get_top_volatile_symbols
     return get_top_volatile_symbols(limit=100)
