@@ -46,6 +46,13 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     last_rsi = RSIIndicator(close).rsi().iloc[-1]
     last_ma10 = SMAIndicator(close, window=10).sma_indicator().iloc[-1]
     last_ma30 = SMAIndicator(close, window=30).sma_indicator().iloc[-1]
+
+    # ✅ Reject if MA values are zero or NaN
+    if np.isnan(last_ma10) or np.isnan(last_ma30):
+        return None
+    if last_ma10 == 0 or last_ma30 == 0:
+        return None
+
     avg_volume = volume[-20:-5].mean()
     current_volume = volume.iloc[-1]
 
@@ -140,3 +147,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         "ma10": round(last_ma10, 4),
         "ma30": round(last_ma30, 4)
     }
+def get_active_usdt_symbols():
+    from get_top_symbols import get_top_volatile_symbols
+    return get_top_volatile_symbols(limit=100)
