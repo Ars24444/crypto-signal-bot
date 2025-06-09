@@ -72,10 +72,10 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    # === BTC filter ===
-    if direction == "LONG" and btc_change_pct < -0.8:
+    # === BTC trend filter (stricter) ===
+    if direction == "LONG" and (btc_change_pct < -0.5 or btc_rsi < 45):
         return None
-    if direction == "SHORT" and btc_change_pct > 0.8:
+    if direction == "SHORT" and (btc_change_pct > 0.5 or btc_rsi > 55):
         return None
 
     # === MA trend ===
