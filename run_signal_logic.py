@@ -60,13 +60,13 @@ def send_signals(force=False):
         atr = AverageTrueRange(df["high"], df["low"], df["close"], window=14).average_true_range().iloc[-1]
 
         if signal == "LONG":
-            sl = round(entry_high * 0.985, 4)
-            tp1 = round(entry + atr, 4)
-            tp2 = round(entry + 2 * atr, 4)
+            sl = round(entry * 0.988, 4)  # -1.2%
+            tp1 = round(entry * 1.03, 4)  # +3%
+            tp2 = round(entry * 1.05, 4)  # +5%
         else:
-            sl = round(entry_low * 1.015, 4)
-            tp1 = round(entry - atr, 4)
-            tp2 = round(entry - 2 * atr, 4)
+            sl = round(entry * 1.012, 4)  # -1.2%
+            tp1 = round(entry * 0.97, 4)  # -3%
+            tp2 = round(entry * 0.95, 4)  # -5%
 
         if score > top_score:
             top_score = score
