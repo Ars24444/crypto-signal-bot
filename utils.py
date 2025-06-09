@@ -29,8 +29,12 @@ def get_data(symbol, interval='1h', limit=100):
     df[['open', 'high', 'low', 'close', 'volume']] = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
     return df
 
+    from orderbook_filter import is_orderbook_safe
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
+        return None
+    # Reject if orderbook is too weak or manipulated
+    if not is_orderbook_safe(symbol):
         return None
 
     close = df['close']
