@@ -14,9 +14,17 @@ def get_active_symbols_by_trades(symbols, interval='15m', limit=1, min_buy_volum
                 continue
 
             kline = data[0]
-            total_volume = float(kline[5])
+            open_ = float(kline[1])
+            high = float(kline[2])
+            low = float(kline[3])
+            close = float(kline[4])
+            volume = float(kline[5])
             taker_buy_volume = float(kline[9])
-            taker_sell_volume = total_volume - taker_buy_volume
+            taker_sell_volume = volume - taker_buy_volume
+
+            # ✅ Reject if any value is zero
+            if close == 0 or open_ == 0 or high == 0 or low == 0 or volume == 0:
+                continue
 
             if taker_buy_volume >= min_buy_volume and taker_sell_volume >= min_sell_volume:
                 active_symbols.append(symbol)
@@ -24,7 +32,7 @@ def get_active_symbols_by_trades(symbols, interval='15m', limit=1, min_buy_volum
             print(f"⚠️ Error checking {symbol}: {e}")
     return active_symbols
 
-def get_top_volatile_symbols(limit=100, min_volume_usdt=300_000):  # ավելի թույլ շեմ
+def get_top_volatile_symbols(limit=100, min_volume_usdt=300_000):
     try:
         url = "https://api.binance.com/api/v3/ticker/24hr"
         response = requests.get(url, timeout=10)
