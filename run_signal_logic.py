@@ -42,6 +42,8 @@ def send_signals(force=False):
             continue
 
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
+        if not result:
+            print(f"🔎 Debug: {symbol} rejected by signal filter")
 
         if result:
             print(f"✅ {symbol} → {result['type']} | Score: {result['score']} | RSI: {result['rsi']}")
