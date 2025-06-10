@@ -1,5 +1,4 @@
 import requests
-import pandas as pd
 
 def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, interval='1h', candles_to_check=3):
     try:
@@ -17,17 +16,35 @@ def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, interval='1h', 
             low = float(candle[3])
 
             if signal_type == "LONG":
-                # Check if SL is hit first
-                if low <= sl:
+                if low <= sl and high >= tp2:
+                    if abs(sl - entry) < abs(tp2 - entry):
+                        return "SL"
+                    else:
+                        return "TP2"
+                elif low <= sl and high >= tp1:
+                    if abs(sl - entry) < abs(tp1 - entry):
+                        return "SL"
+                    else:
+                        return "TP1"
+                elif low <= sl:
                     return "SL"
-                # Then check TP2 and TP1
                 elif high >= tp2:
                     return "TP2"
                 elif high >= tp1:
                     return "TP1"
 
             elif signal_type == "SHORT":
-                if high >= sl:
+                if high >= sl and low <= tp2:
+                    if abs(sl - entry) < abs(tp2 - entry):
+                        return "SL"
+                    else:
+                        return "TP2"
+                elif high >= sl and low <= tp1:
+                    if abs(sl - entry) < abs(tp1 - entry):
+                        return "SL"
+                    else:
+                        return "TP1"
+                elif high >= sl:
                     return "SL"
                 elif low <= tp2:
                     return "TP2"
