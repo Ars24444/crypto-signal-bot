@@ -67,10 +67,10 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     score = 0
 
     # RSI-based direction
-    if last_rsi < 35:
+    if last_rsi < 40:
         direction = "SHORT"
         score += 1
-    elif 65 < last_rsi < 70:
+    elif 60 < last_rsi < 70:
         direction = "LONG"
         score += 1
     else:
