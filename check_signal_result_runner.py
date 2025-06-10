@@ -22,7 +22,7 @@ def check_recent_signal_results():
         return
 
     for signal in recent_signals:
-        result = check_trade_result(
+        result = check_trade_result()
             symbol=signal["symbol"],
             signal_type=signal["type"],
             entry=signal["entry"],
