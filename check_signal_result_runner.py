@@ -22,14 +22,16 @@ def check_recent_signal_results():
         return
 
     for signal in recent_signals:
-        result = check_trade_result()
-            symbol=signal["symbol"],
-            signal_type=signal["type"],
-            entry=signal["entry"],
-            tp1=signal["tp1"],
-            tp2=signal["tp2"],
-            sl=signal["sl"]
+        result = check_trade_result(
+            symbol=signal['symbol'],
+            signal_type=signal['type'],
+            entry=signal['entry'],
+            tp1=signal['tp1'],
+            tp2=signal['tp2'],
+            sl=signal['sl'],
+            signal_time_ms=signal['signal_time_ms']  # 
         )
-        msg = f"✅ {signal['symbol']} ({signal['type']}): {result}"
+
+        msg = f"🧪 [{signal['symbol']}] ({signal['type']}): {result}"
         print(msg)
         bot.send_message(chat_id=CHAT_ID, text=msg)
