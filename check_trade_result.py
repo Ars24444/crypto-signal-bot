@@ -25,6 +25,9 @@ def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, signal_time_ms)
     try:
         candles = get_1m_data(symbol, signal_time_ms, minutes=180)
 
+        tp1_hit = False
+        tp2_hit = False
+
         for candle in candles:
             high = float(candle[2])
             low = float(candle[3])
@@ -32,20 +35,24 @@ def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, signal_time_ms)
             if signal_type == "LONG":
                 if low <= sl:
                     return "SL"
-                elif high >= tp2:
+                if high >= tp2:
                     return "TP2"
-                elif high >= tp1:
-                    return "TP1"
+                if high >= tp1:
+                    tp1_hit = True
 
             elif signal_type == "SHORT":
                 if high >= sl:
                     return "SL"
-                elif low <= tp2:
+                if low <= tp2:
                     return "TP2"
-                elif low <= tp1:
-                    return "TP1"
+                if low <= tp1:
+                    tp1_hit = True
+
+        if tp1_hit:
+            return "TP1"
 
         return "NO HIT"
+
     except Exception as e:
         print(f"❌ Error checking result with 1m for {symbol}: {e}")
         return "ERROR"
