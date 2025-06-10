@@ -85,6 +85,20 @@ def send_signals(force=False):
             sl=sl,
             signal_time_ms=signal_time_ms
         )
+
+        # 🧪 Detailed analysis log per symbol
+        print("\n📊 Signal Analysis Breakdown:")
+        print(f"🔹 Symbol: {symbol}")
+        print(f"🔹 Type: {signal}")
+        print(f"🔹 RSI: {rsi}")
+        print(f"🔹 MA Trend: MA10 > MA30 = {ma10 > ma30}")
+        print(f"🔹 Volume Spike: {df['volume'].iloc[-1]} > avg*1.5 = {df['volume'].iloc[-1] > 1.5 * df['volume'][-20:-5].mean()}")
+        candle_type = "Bullish" if signal == "LONG" and df['close'].iloc[-1] > df['open'].iloc[-1] else "Bearish" if signal == "SHORT" and df['close'].iloc[-1] < df['open'].iloc[-1] else "Weak"
+        print(f"🔹 Candle: {candle_type}")
+        print(f"🔹 BTC Trend Match: {'✅' if (signal == 'LONG' and btc_change_pct > 0) or (signal == 'SHORT' and btc_change_pct < 0) else '❌'}")
+        print(f"🔹 Final Score: {score}")
+        print(f"🔹 Result: {result_check}")
+
         print(f"📈 Finalized {symbol}: {signal} | Score: {score} | Result: {result_check}")
 
         if score > top_score:
