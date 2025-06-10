@@ -76,17 +76,16 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    # ✅ BTC influence filter – softer and safer
-    btc_blocked = False
+    # ✅ BTC influence: soft penalty instead of blocking
+    btc_penalty = 0
+    btc_reason = ""
 
     if direction == "SHORT" and btc_change_pct > 1.5 and btc_rsi > 65:
-        btc_blocked = True
-    if direction == "LONG" and btc_change_pct < -1.5 and btc_rsi < 35:
-        btc_blocked = True
-
-    if btc_blocked:
-        print(f"⛔️ {symbol} blocked by BTC filter. BTC %: {btc_change_pct:.2f}, RSI: {btc_rsi:.1f}")
-        return None
+        btc_penalty = 1
+        btc_reason = "⚠️ BTC is UP, risky SHORT"
+    elif direction == "LONG" and btc_change_pct < -1.5 and btc_rsi < 35:
+        btc_penalty = 1
+        btc_reason = "⚠️ BTC is DOWN, risky LONG"
 
     # MA trend confirmation
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
@@ -103,6 +102,9 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     # Bonus for BTC trend agreement
     if (direction == "LONG" and btc_change_pct > 0.5) or (direction == "SHORT" and btc_change_pct < -0.5):
         score += 1
+
+    # Apply BTC influence penalty
+    score -= btc_penalty
 
     # Filter out overbought/oversold extremes
     if direction == "LONG" and last_rsi >= 70:
@@ -137,6 +139,8 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         sl = entry + 1.0 * atr
 
     if score < 4:
+        if btc_penalty:
+            print(f"⛔️ {symbol} skipped due to BTC influence – {btc_reason}")
         return None
 
     return {
