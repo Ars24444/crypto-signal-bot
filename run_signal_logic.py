@@ -14,11 +14,13 @@ CHAT_ID = 5398864436
 bot = Bot(token=TELEGRAM_TOKEN)
 
 def send_signals(force=False):
-    print("Signal function started")
+    print("🚀 Signal function started")
 
     btc_df = get_data("BTCUSDT")
     btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-4]) / btc_df["close"].iloc[-4] * 100
     btc_rsi = RSIIndicator(btc_df["close"]).rsi().iloc[-1]
+
+    print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}")
 
     symbols = get_top_volatile_symbols(limit=100)
     active_usdt_symbols = get_active_usdt_symbols()
@@ -31,14 +33,20 @@ def send_signals(force=False):
 
     for symbol in symbols:
         if symbol in used_symbols or not symbol.endswith("USDT") or symbol not in active_usdt_symbols or is_blacklisted(symbol):
+            print(f"⏩ Skipping {symbol} – inactive or blacklisted")
             continue
 
         df = get_data(symbol)
         if df is None or len(df) < 50 or df["close"].iloc[-1] == 0:
+            print(f"⚠️ Skipping {symbol} – invalid data")
             continue
 
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
-        print("✅ Raw result:", result)
+
+        if result:
+            print(f"✅ {symbol} → {result['type']} | Score: {result['score']} | RSI: {result['rsi']}")
+        else:
+            print(f"❌ {symbol} → Rejected (not strong enough or blocked by BTC filter)")
 
         if not result or result["score"] < 4 or result["type"] not in ["LONG", "SHORT"]:
             continue
@@ -66,17 +74,16 @@ def send_signals(force=False):
         signal_time = datetime.utcnow()
         signal_time_ms = int(signal_time.timestamp() * 1000)
 
-        signal_type = signal
         result_check = check_trade_result(
             symbol=symbol,
-            signal_type=signal_type,
+            signal_type=signal,
             entry=entry,
             tp1=tp1,
             tp2=tp2,
             sl=sl,
             signal_time_ms=signal_time_ms
         )
-        print(f"Signal result for {symbol}: {result_check}")
+        print(f"📈 Finalized {symbol}: {signal} | Score: {score} | Result: {result_check}")
 
         if score > top_score:
             top_score = score
@@ -116,10 +123,10 @@ def send_signals(force=False):
             for symbol, msg in messages:
                 if symbol == top_pick:
                     msg = "🔝 TOP PICK\n" + msg
-                print(f"Sending signal for {symbol}:\n{msg}\n")
+                print(f"\n📤 Sending signal for {symbol}:\n{msg}\n")
                 bot.send_message(chat_id=CHAT_ID, text=msg)
         else:
-            print("No strong signals found. Market is calm.")
+            print("📭 No strong signals found. Market is calm.")
             bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
     except Exception as e:
-        print("ERROR in send_signals:", e)
+        print("❌ ERROR in send_signals:", e)
