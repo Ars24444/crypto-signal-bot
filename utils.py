@@ -76,18 +76,17 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    # ✅ BTC safety filter
-    if direction == "SHORT":
-        if btc_change_pct > 0.7 or btc_rsi > 60:
-            return None
-        if btc_change_pct > 2 and btc_rsi > 65:
-            return None
+    # ✅ BTC influence filter – softer and safer
+    btc_blocked = False
 
-    if direction == "LONG":
-        if btc_change_pct < -0.7 or btc_rsi < 45:
-            return None
-        if btc_change_pct < -2 and btc_rsi < 40:
-            return None
+    if direction == "SHORT" and btc_change_pct > 1.5 and btc_rsi > 65:
+        btc_blocked = True
+    if direction == "LONG" and btc_change_pct < -1.5 and btc_rsi < 35:
+        btc_blocked = True
+
+    if btc_blocked:
+        print(f"⛔️ {symbol} blocked by BTC filter. BTC %: {btc_change_pct:.2f}, RSI: {btc_rsi:.1f}")
+        return None
 
     # MA trend confirmation
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
