@@ -1,32 +1,36 @@
 import requests
 
-def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, interval='1h', candles_to_check=3):
-    try:
-        url = "https://api.binance.com/api/v3/klines"
-        params = {
-            "symbol": symbol,
-            "interval": interval,
-            "limit": candles_to_check
-        }
-        response = requests.get(url, params=params)
-        data = response.json()
+def get_1m_data(symbol, start_time, minutes=180):
+    url = "https://api.binance.com/api/v3/klines"
+    interval = "1m"
+    limit = minutes
 
-        for candle in data:
+    params = {
+        "symbol": symbol,
+        "interval": interval,
+        "startTime": start_time,
+        "limit": limit
+    }
+
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    if not isinstance(data, list):
+        print("❌ Error fetching 1m data")
+        return []
+
+    return data
+
+def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, signal_time_ms):
+    try:
+        candles = get_1m_data(symbol, signal_time_ms, minutes=180)
+
+        for candle in candles:
             high = float(candle[2])
             low = float(candle[3])
 
             if signal_type == "LONG":
-                if low <= sl and high >= tp2:
-                    if abs(sl - entry) < abs(tp2 - entry):
-                        return "SL"
-                    else:
-                        return "TP2"
-                elif low <= sl and high >= tp1:
-                    if abs(sl - entry) < abs(tp1 - entry):
-                        return "SL"
-                    else:
-                        return "TP1"
-                elif low <= sl:
+                if low <= sl:
                     return "SL"
                 elif high >= tp2:
                     return "TP2"
@@ -34,17 +38,7 @@ def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, interval='1h', 
                     return "TP1"
 
             elif signal_type == "SHORT":
-                if high >= sl and low <= tp2:
-                    if abs(sl - entry) < abs(tp2 - entry):
-                        return "SL"
-                    else:
-                        return "TP2"
-                elif high >= sl and low <= tp1:
-                    if abs(sl - entry) < abs(tp1 - entry):
-                        return "SL"
-                    else:
-                        return "TP1"
-                elif high >= sl:
+                if high >= sl:
                     return "SL"
                 elif low <= tp2:
                     return "TP2"
@@ -53,5 +47,5 @@ def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, interval='1h', 
 
         return "NO HIT"
     except Exception as e:
-        print(f"Error checking result for {symbol}: {e}")
+        print(f"❌ Error checking result with 1m for {symbol}: {e}")
         return "ERROR"
