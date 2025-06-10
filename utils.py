@@ -35,7 +35,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
         return None
 
-    # ✅ Reject if orderbook is too weak or manipulated
     if not is_orderbook_safe(symbol):
         return None
 
@@ -67,6 +66,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     direction = None
     score = 0
 
+    # RSI-based direction
     if last_rsi < 35:
         direction = "SHORT"
         score += 1
@@ -76,38 +76,48 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    if direction == "LONG" and (btc_change_pct < -0.5 or btc_rsi < 45):
-        return None
-    if direction == "SHORT" and (btc_change_pct > 0.5 or btc_rsi > 55):
-        return None
+    # ✅ BTC safety filter
+    if direction == "SHORT":
+        if btc_change_pct > 0.7 or btc_rsi > 60:
+            return None
+        if btc_change_pct > 2 and btc_rsi > 65:
+            return None
 
+    if direction == "LONG":
+        if btc_change_pct < -0.7 or btc_rsi < 45:
+            return None
+        if btc_change_pct < -2 and btc_rsi < 40:
+            return None
+
+    # MA trend confirmation
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
         score += 1
 
+    # Volume confirmation
     if current_volume > 1.5 * avg_volume:
         score += 1
 
+    # Candle structure confirmation
     if (direction == "LONG" and bullish_candles) or (direction == "SHORT" and bearish_candles):
         score += 1
 
+    # Bonus for BTC trend agreement
     if (direction == "LONG" and btc_change_pct > 0.5) or (direction == "SHORT" and btc_change_pct < -0.5):
         score += 1
 
+    # Filter out overbought/oversold extremes
     if direction == "LONG" and last_rsi >= 70:
         return None
     if direction == "SHORT" and last_rsi <= 30:
         return None
 
-    if direction == "LONG" and btc_change_pct > 2.5 and btc_rsi > 65:
-        return None
-    if direction == "SHORT" and btc_change_pct < -2.5 and btc_rsi < 35:
-        return None
-
+    # Reject weak last candle in the opposite direction
     if direction == "LONG" and last_close < last_open:
         return None
     if direction == "SHORT" and last_close > last_open:
         return None
 
+    # Optional safe last candle checker
     try:
         from safe_candle_checker import is_safe_last_candle
         if not is_safe_last_candle(df, signal_type=direction):
@@ -138,10 +148,9 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         "sl": round(sl, 4),
         "score": score,
         "rsi": round(last_rsi, 2),
-    "ma10": round(last_ma10, 4),
+        "ma10": round(last_ma10, 4),
         "ma30": round(last_ma30, 4)
     }
-
 def get_active_usdt_symbols():
     from get_top_symbols import get_top_volatile_symbols
     return get_top_volatile_symbols(limit=100)
