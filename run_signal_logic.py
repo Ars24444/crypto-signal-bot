@@ -6,6 +6,7 @@ from ta.volatility import AverageTrueRange
 from blacklist_manager import is_blacklisted, add_to_blacklist
 from check_trade_result import check_trade_result
 from signal_logger import log_sent_signal
+from datetime import datetime
 import os
 
 TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
@@ -29,13 +30,7 @@ def send_signals(force=False):
     messages = []
 
     for symbol in symbols:
-        if symbol in used_symbols:
-            continue
-        if not symbol.endswith("USDT"):
-            continue
-        if symbol not in active_usdt_symbols:
-            continue
-        if is_blacklisted(symbol):
+        if symbol in used_symbols or not symbol.endswith("USDT") or symbol not in active_usdt_symbols or is_blacklisted(symbol):
             continue
 
         df = get_data(symbol)
@@ -60,13 +55,28 @@ def send_signals(force=False):
         atr = AverageTrueRange(df["high"], df["low"], df["close"], window=14).average_true_range().iloc[-1]
 
         if signal == "LONG":
-            sl = round(entry * 0.988, 4)  # -1.2%
-            tp1 = round(entry * 1.03, 4)  # +3%
-            tp2 = round(entry * 1.05, 4)  # +5%
+            sl = round(entry * 0.988, 4)
+            tp1 = round(entry * 1.03, 4)
+            tp2 = round(entry * 1.05, 4)
         else:
-            sl = round(entry * 1.012, 4)  # -1.2%
-            tp1 = round(entry * 0.97, 4)  # -3%
-            tp2 = round(entry * 0.95, 4)  # -5%
+            sl = round(entry * 1.012, 4)
+            tp1 = round(entry * 0.97, 4)
+            tp2 = round(entry * 0.95, 4)
+
+        signal_time = datetime.utcnow()
+        signal_time_ms = int(signal_time.timestamp() * 1000)
+
+        signal_type = signal
+        result_check = check_trade_result(
+            symbol=symbol,
+            signal_type=signal_type,
+            entry=entry,
+            tp1=tp1,
+            tp2=tp2,
+            sl=sl,
+            signal_time_ms=signal_time_ms
+        )
+        print(f"Signal result for {symbol}: {result_check}")
 
         if score > top_score:
             top_score = score
@@ -82,10 +92,10 @@ def send_signals(force=False):
             f"Entry: {entry_low} – {entry_high}\n"
             f"TP1: {tp1}\n"
             f"TP2: {tp2}\n"
-            f"SL: {sl}"
+            f"SL: {sl}\n"
+            f"🧪 Result: {result_check}"
         )
 
-        # ✅ Log the signal for result tracking
         log_sent_signal(symbol, {
             "type": signal,
             "entry": entry,
@@ -106,10 +116,10 @@ def send_signals(force=False):
             for symbol, msg in messages:
                 if symbol == top_pick:
                     msg = "🔝 TOP PICK\n" + msg
-                print(f"📤 Sending signal for {symbol}:\n{msg}\n")
+                print(f"Sending signal for {symbol}:\n{msg}\n")
                 bot.send_message(chat_id=CHAT_ID, text=msg)
         else:
-            print("📭 No strong signals found. Market is calm.")
+            print("No strong signals found. Market is calm.")
             bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
     except Exception as e:
         print("ERROR in send_signals:", e)
