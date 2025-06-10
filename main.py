@@ -1,6 +1,7 @@
 from flask import Flask
 import threading
 from run_signal_logic import send_signals
+send_signals(force=True)
 from check_signal_result_runner import check_recent_signal_results
 
 app = Flask(__name__)
