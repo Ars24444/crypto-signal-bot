@@ -141,7 +141,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         tp2 = entry - 2.0 * atr
         sl = entry + 1.0 * atr
 
-    if score < 4:
+    if score < 3:
         print(f"❌ {symbol} rejected – Final score: {score}")
         if btc_penalty:
             print(f"⛔️ {symbol} lost 1 point due to BTC trend: {btc_reason}")
