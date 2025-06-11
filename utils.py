@@ -61,8 +61,8 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     current_volume = volume.iloc[-1]
 
     # ❗️ Hard volume filter – reject early if volume too weak
-    if current_volume < 1.2 * avg_volume:
-        print(f"⛔️ {symbol} rejected due to weak volume: {current_volume:.2f} < 1.2 × avg")
+    if current_volume < 1.1 * avg_volume:
+        print(f"⛔️ {symbol} rejected due to weak volume: {current_volume:.2f} < 1.1 × avg")
         return None
 
     bullish_candles = last_close > last_open and prev_close > prev_open
