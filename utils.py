@@ -5,8 +5,32 @@ import numpy as np
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
-
+from utils import get_orderbook_strength
 from orderbook_filter import is_orderbook_safe  # ✅ moved to top
+import requests
+
+def get_orderbook_strength(symbol, limit=5):
+    try:
+        url = f"https://api.binance.com/api/v3/depth"
+        params = {"symbol": symbol.upper(), "limit": limit}
+        response = requests.get(url, params=params, timeout=5)
+        data = response.json()
+
+        bids = sum([float(bid[1]) for bid in data["bids"]])
+        asks = sum([float(ask[1]) for ask in data["asks"]])
+
+        if bids == 0:
+            return "weak"
+
+        ratio = asks / bids
+        if ratio > 2:
+            return "bearish"
+        elif ratio < 0.5:
+            return "bullish"
+        else:
+            return "neutral"
+    except:
+        return "unknown"
 
 def get_data(symbol, interval='1h', limit=100):
     url = 'https://api.binance.com/api/v3/klines'
@@ -140,7 +164,15 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         tp1 = entry - 1.2 * atr
         tp2 = entry - 2.0 * atr
         sl = entry + 1.0 * atr
+    # ✅ Orderbook strength filter
+    orderbook_strength = get_orderbook_strength(symbol)
 
+    if direction == "LONG" and orderbook_strength == "bearish":
+        print(f"📉 {symbol} rejected due to strong sell wall (orderbook bearish)")
+        return None
+    if direction == "SHORT" and orderbook_strength == "bullish":
+        print(f"📈 {symbol} rejected due to strong buy wall (orderbook bullish)")
+        return None
     if score < 3:
         print(f"❌ {symbol} rejected – Final score: {score}")
         if btc_penalty:
