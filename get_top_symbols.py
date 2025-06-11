@@ -32,7 +32,7 @@ def get_active_symbols_by_trades(symbols, interval='15m', limit=1, min_buy_volum
             print(f"⚠️ Error checking {symbol}: {e}")
     return active_symbols
 
-def get_top_volatile_symbols(limit=100, min_volume_usdt=300_000):
+def get_top_volatile_symbols(limit=200, min_volume_usdt=300_000):
     try:
         url = "https://api.binance.com/api/v3/ticker/24hr"
         response = requests.get(url, timeout=10)
