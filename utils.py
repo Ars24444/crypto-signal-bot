@@ -5,7 +5,7 @@ import numpy as np
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
-from utils import get_orderbook_strength
+from orderbook_filter import is_orderbook_safe
 from orderbook_filter import is_orderbook_safe  # ✅ moved to top
 import requests
 
