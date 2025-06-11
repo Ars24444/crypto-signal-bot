@@ -23,6 +23,7 @@ def send_signals(force=False):
     print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}")
 
     symbols = get_top_volatile_symbols(limit=200)
+    print(f"🔍 Checking {len(symbols)} coins from top volatile list")
     active_usdt_symbols = get_active_usdt_symbols()
     used_symbols = set()
     count = 0
