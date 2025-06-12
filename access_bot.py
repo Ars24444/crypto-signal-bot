@@ -1,35 +1,27 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-import json
-import os
-from pytz import utc
+from telegram import Update, Bot
+from telegram.ext import Updater, CommandHandler, CallbackContext
+from signal_logger import send_winrate_to_telegram
 
 TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
-VIP_GROUP_LINK = "https://t.me/+vAr3ecIJJLs0NTdi"
 
-def load_whitelist():
-    with open("whitelist.json", "r") as f:
-        return json.load(f)
+bot = Bot(token=TELEGRAM_TOKEN)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    whitelist = load_whitelist()
+def start(update: Update, context: CallbackContext):
+    update.message.reply_text("🤖 Welcome! Available commands:\n/winrate – show latest win rate")
 
-    if user_id in whitelist and whitelist[user_id]:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"✅ Access granted!\nHere is your VIP link:\n{VIP_GROUP_LINK}"
-        )
-    else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="🚫 Access denied. Please subscribe to get access.\n💳 Contact @YourUsername to pay."
-        )
+def winrate_command(update: Update, context: CallbackContext):
+    send_winrate_to_telegram(last_n=50)
+    update.message.reply_text("📊 Win rate report sent to Telegram.")
 
 def main():
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.run_polling()
+    updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("winrate", winrate_command))
+
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     main()
