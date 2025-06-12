@@ -34,6 +34,26 @@ def log_sent_signal(symbol, data, result="NO HIT"):
     with open(LOG_FILE, "w") as f:
         json.dump(logs, f, indent=4)
 
+def get_recent_signals(minutes=60):
+    if not os.path.exists(LOG_FILE):
+        return []
+
+    with open(LOG_FILE, "r") as f:
+        try:
+            logs = json.load(f)
+        except json.JSONDecodeError:
+            return []
+
+    cutoff_time = datetime.utcnow() - timedelta(minutes=minutes)
+
+    recent = []
+    for entry in logs:
+        entry_time = datetime.strptime(entry["timestamp"], '%Y-%m-%d %H:%M:%S')
+        if entry_time > cutoff_time:
+            recent.append(entry)
+
+    return recent
+
 def send_winrate_to_telegram(last_n=20):
     if not os.path.exists(LOG_FILE):
         print("Log file not found.")
