@@ -19,7 +19,6 @@ def send_signals(force=False):
     btc_df = get_data("BTCUSDT")
     btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-2]) / btc_df["close"].iloc[-2] * 100
     btc_rsi = RSIIndicator(btc_df["close"]).rsi().iloc[-1]
-
     print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}")
 
     symbols = get_top_volatile_symbols(limit=200)
@@ -31,10 +30,6 @@ def send_signals(force=False):
     top_score = -1
     top_pick = None
     messages = []
-    fallback_long = None
-    fallback_short = None
-    fallback_long_score = -1
-    fallback_short_score = -1
 
     for symbol in symbols:
         if symbol in used_symbols or not symbol.endswith("USDT") or symbol not in active_usdt_symbols or is_blacklisted(symbol):
@@ -49,13 +44,6 @@ def send_signals(force=False):
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
         if not result:
             print(f"🔎 Debug: {symbol} rejected by signal filter")
-
-        if result:
-            print(f"✅ {symbol} → {result['type']} | Score: {result['score']} | RSI: {result['rsi']}")
-        else:
-            print(f"❌ {symbol} → Rejected (not strong enough or blocked by BTC filter)")
-
-        if not result or result["score"] < 4 or result["type"] not in ["LONG", "SHORT"]:
             continue
 
         signal = result["type"]
@@ -65,9 +53,11 @@ def send_signals(force=False):
         ma10 = result["ma10"]
         ma30 = result["ma30"]
 
+        if score < 4 or signal not in ["LONG", "SHORT"]:
+            continue
+
         entry_low = round(df["low"].iloc[-1] * 0.999, 4)
         entry_high = round(df["high"].iloc[-1] * 1.001, 4)
-        atr = AverageTrueRange(df["high"], df["low"], df["close"], window=14).average_true_range().iloc[-1]
 
         if signal == "LONG":
             sl = round(entry * 0.988, 4)
@@ -91,7 +81,6 @@ def send_signals(force=False):
             signal_time_ms=signal_time_ms
         )
 
-        # 🧪 Detailed analysis log per symbol
         print("\n📊 Signal Analysis Breakdown:")
         print(f"🔹 Symbol: {symbol}")
         print(f"🔹 Type: {signal}")
@@ -103,8 +92,6 @@ def send_signals(force=False):
         print(f"🔹 BTC Trend Match: {'✅' if (signal == 'LONG' and btc_change_pct > 0) or (signal == 'SHORT' and btc_change_pct < 0) else '❌'}")
         print(f"🔹 Final Score: {score}")
         print(f"🔹 Result: {result_check}")
-
-        print(f"📈 Finalized {symbol}: {signal} | Score: {score} | Result: {result_check}")
 
         if score > top_score:
             top_score = score
@@ -124,14 +111,6 @@ def send_signals(force=False):
             f"🧪 Result: {result_check}"
         )
 
-        log_sent_signal(symbol, {
-            "type": signal,
-            "entry": entry,
-            "tp1": tp1,
-            "tp2": tp2,
-            "sl": sl
-        })
-
         messages.append((symbol, message))
         used_symbols.add(symbol)
         count += 1
@@ -147,7 +126,8 @@ def send_signals(force=False):
                 print(f"\n📤 Sending signal for {symbol}:\n{msg}\n")
                 bot.send_message(chat_id=CHAT_ID, text=msg)
         else:
-            print("📭 No strong signals found. Market is calm.")
+            print("📭 No strong signals found.Market is calm.")
             bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
     except Exception as e:
         print("❌ ERROR in send_signals:", e)
+                  
