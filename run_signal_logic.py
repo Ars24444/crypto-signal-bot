@@ -3,7 +3,7 @@ from get_top_symbols import get_top_volatile_symbols
 from telegram import Bot
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
-from blacklist_manager import is_blacklisted, add_to_blacklist
+from blacklist_manager import is_blacklisted, add_to_blacklist, get_blacklist_reason
 from check_trade_result import check_trade_result
 from signal_logger import log_sent_signal
 from datetime import datetime
