@@ -7,6 +7,7 @@ from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
 from orderbook_filter import is_orderbook_safe
 from orderbook_filter import is_orderbook_safe  # ✅ moved to top
+from whitelist_manager import is_whitelisted
 import requests
 
 def get_orderbook_strength(symbol, limit=5):
@@ -85,8 +86,8 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     current_volume = volume.iloc[-1]
 
     # Volume filter
-    if current_volume < 0.9 * avg_volume:
-        print(f"{symbol} rejected due to weak volume: {current_volume:.2f} < 0.9 × avg")
+    if current_volume < 0.7 * avg_volume:
+        print(f"{symbol} rejected due to weak volume: {current_volume:.2f} < 0.7 × avg")
         return None
 
     bullish_candles = last_close > last_open and prev_close > prev_open
@@ -174,7 +175,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         print(f"{symbol} rejected due to strong buy wall (orderbook bullish)")
         return None
 
-    if score < 3:
+    if score < 4 and not is_whitelisted(symbol):
         print(f"{symbol} rejected – Final score: {score}")
         if btc_penalty:
             print(f"{symbol} lost 1 point due to BTC trend: {btc_reason}")
