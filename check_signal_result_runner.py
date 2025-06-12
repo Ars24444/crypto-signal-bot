@@ -4,8 +4,8 @@ import pandas as pd
 from signal_logger import get_recent_signals
 from check_trade_result import check_trade_result
 from telegram import Bot
+from datetime import datetime
 
-# ✅ Telegram bot setup
 TELEGRAM_TOKEN = '7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs'
 CHAT_ID = 5398864436
 bot = Bot(token=TELEGRAM_TOKEN)
@@ -23,6 +23,10 @@ def check_recent_signal_results():
 
     for signal in recent_signals:
         try:
+            # Compute signal_time_ms from saved timestamp
+            dt = datetime.strptime(signal['timestamp'], '%Y-%m-%d %H:%M:%S')
+            signal_time_ms = int(dt.timestamp() * 1000)
+
             result = check_trade_result(
                 symbol=signal['symbol'],
                 signal_type=signal['type'],
@@ -30,10 +34,10 @@ def check_recent_signal_results():
                 tp1=signal['tp1'],
                 tp2=signal['tp2'],
                 sl=signal['sl'],
-                signal_time_ms=signal['signal_time_ms']  # 
+                signal_time_ms=signal_time_ms
             )
 
-            msg = f"🧪 [{signal['symbol']}] ({signal['type']}): {result}"
+            msg = f"🧪 {signal['symbol']} ({signal['type']}): {result}"
             print(msg)
             bot.send_message(chat_id=CHAT_ID, text=msg)
 
