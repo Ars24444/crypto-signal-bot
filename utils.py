@@ -84,9 +84,9 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     avg_volume = volume[-20:-5].mean()
     current_volume = volume.iloc[-1]
 
-    # ❗️ Hard volume filter – reject early if volume too weak
-    if current_volume < 1.1 * avg_volume:
-        print(f"⛔️ {symbol} rejected due to weak volume: {current_volume:.2f} < 1.1 × avg")
+    # Volume filter
+    if current_volume < 0.9 * avg_volume:
+        print(f"{symbol} rejected due to weak volume: {current_volume:.2f} < 0.9 × avg")
         return None
 
     bullish_candles = last_close > last_open and prev_close > prev_open
@@ -105,21 +105,21 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    # BTC influence (soft penalty)
+    # BTC influence
     btc_penalty = 0
     btc_reason = ""
-    if direction == "SHORT" and btc_change_pct > 1.5 and btc_rsi > 65:
+    if direction == "SHORT" and btc_change_pct > 2.0 and btc_rsi > 70:
         btc_penalty = 1
-        btc_reason = "⚠️ BTC is UP, risky SHORT"
-    elif direction == "LONG" and btc_change_pct < -1.5 and btc_rsi < 35:
+        btc_reason = "BTC is UP, risky SHORT"
+    elif direction == "LONG" and btc_change_pct < -2.0 and btc_rsi < 30:
         btc_penalty = 1
-        btc_reason = "⚠️ BTC is DOWN, risky LONG"
+        btc_reason = "BTC is DOWN, risky LONG"
 
     # MA trend
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
         score += 1
 
-    # Volume confirmation (already passed hard filter)
+    # Volume confirmation
     score += 1
 
     # Candle structure
@@ -130,22 +130,21 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if (direction == "LONG" and btc_change_pct > 0.5) or (direction == "SHORT" and btc_change_pct < -0.5):
         score += 1
 
-    # Penalty for BTC conflict
+    # BTC penalty
     score -= btc_penalty
 
-    # Reject extremes
+    # Extreme RSI rejection
     if direction == "LONG" and last_rsi >= 70:
         return None
     if direction == "SHORT" and last_rsi <= 30:
         return None
 
-    # Reject weak last candle
+    # Last candle validation
     if direction == "LONG" and last_close < last_open:
         return None
     if direction == "SHORT" and last_close > last_open:
         return None
 
-    # Optional candle safety
     try:
         from safe_candle_checker import is_safe_last_candle
         if not is_safe_last_candle(df, signal_type=direction):
@@ -164,19 +163,21 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         tp1 = entry - 1.2 * atr
         tp2 = entry - 2.0 * atr
         sl = entry + 1.0 * atr
-    # ✅ Orderbook strength filter
+
+    # Orderbook strength filter
     orderbook_strength = get_orderbook_strength(symbol)
 
     if direction == "LONG" and orderbook_strength == "bearish":
-        print(f"📉 {symbol} rejected due to strong sell wall (orderbook bearish)")
+        print(f"{symbol} rejected due to strong sell wall (orderbook bearish)")
         return None
     if direction == "SHORT" and orderbook_strength == "bullish":
-        print(f"📈 {symbol} rejected due to strong buy wall (orderbook bullish)")
+        print(f"{symbol} rejected due to strong buy wall (orderbook bullish)")
         return None
+
     if score < 3:
-        print(f"❌ {symbol} rejected – Final score: {score}")
+        print(f"{symbol} rejected – Final score: {score}")
         if btc_penalty:
-            print(f"⛔️ {symbol} lost 1 point due to BTC trend: {btc_reason}")
+            print(f"{symbol} lost 1 point due to BTC trend: {btc_reason}")
         return None
 
     return {
