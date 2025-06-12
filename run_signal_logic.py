@@ -31,9 +31,17 @@ def send_signals(force=False):
     top_pick = None
     messages = []
 
-    for symbol in symbols:
-        if symbol in used_symbols or not symbol.endswith("USDT") or symbol not in active_usdt_symbols or is_blacklisted(symbol):
-            print(f"⏩ Skipping {symbol} – inactive or blacklisted")
+        if symbol in used_symbols:
+            continue
+
+        if not symbol.endswith("USDT"):
+            continue
+
+        if symbol not in active_usdt_symbols:
+            continue
+
+        if is_blacklisted(symbol):
+            print(f"⛔️ Skipping {symbol} — blacklisted ({get_blacklist_reason(symbol)})")
             continue
 
         df = get_data(symbol)
