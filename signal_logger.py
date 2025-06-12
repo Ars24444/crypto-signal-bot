@@ -1,26 +1,53 @@
 import json
 import os
 import requests
+from datetime import datetime, timedelta
 
 LOG_FILE = "sent_signals_log.json"
 
 TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
 CHAT_ID = 5398864436
 
+def log_sent_signal(symbol, data, result="NO HIT"):
+    timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    log_entry = {
+        "symbol": symbol,
+        "timestamp": timestamp,
+        "type": data["type"],
+        "entry": data["entry"],
+        "tp1": data["tp1"],
+        "tp2": data["tp2"],
+        "sl": data["sl"],
+        "result": result
+    }
+
+    logs = []
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE, "r") as f:
+            try:
+                logs = json.load(f)
+            except json.JSONDecodeError:
+                logs = []
+
+    logs.append(log_entry)
+
+    with open(LOG_FILE, "w") as f:
+        json.dump(logs, f, indent=4)
+
 def send_winrate_to_telegram(last_n=20):
     if not os.path.exists(LOG_FILE):
-        print("❌ Log file not found.")
+        print("Log file not found.")
         return
 
     with open(LOG_FILE, "r") as f:
         try:
             logs = json.load(f)
         except json.JSONDecodeError:
-            print("❌ Failed to read JSON log.")
+            print("Failed to read JSON log.")
             return
 
     if len(logs) == 0:
-        print("📭 No signal logs to analyze.")
+        print("No signal logs to analyze.")
         return
 
     recent = logs[-last_n:]
@@ -49,6 +76,6 @@ def send_winrate_to_telegram(last_n=20):
 
     response = requests.post(url, data=payload)
     if response.status_code == 200:
-        print("✅ Win rate sent to Telegram.")
+        print("Win rate sent to Telegram.")
     else:
-        print(f"❌ Failed to send: {response.status_code} {response.text}")
+        print(f"Failed to send: {response.status_code} {response.text}")
