@@ -30,7 +30,8 @@ def send_signals(force=False):
     top_score = -1
     top_pick = None
     messages = []
-
+    
+    for symbol in symbols:
         if symbol in used_symbols:
             continue
 
