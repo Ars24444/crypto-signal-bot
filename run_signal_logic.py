@@ -31,6 +31,10 @@ def send_signals(force=False):
     top_score = -1
     top_pick = None
     messages = []
+    fallback_long = None
+    fallback_short = None
+    fallback_long_score = -1
+    fallback_short_score = -1
 
     for symbol in symbols:
         if symbol in used_symbols or not symbol.endswith("USDT") or symbol not in active_usdt_symbols or is_blacklisted(symbol):
