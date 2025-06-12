@@ -4,7 +4,7 @@ from datetime import datetime
 
 LOG_FILE = "sent_signals_log.json"
 
-def log_sent_signal(symbol, data):
+def log_sent_signal(symbol, data, result="NO HIT"):
     timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     log_entry = {
         "symbol": symbol,
@@ -13,7 +13,8 @@ def log_sent_signal(symbol, data):
         "entry": data["entry"],
         "tp1": data["tp1"],
         "tp2": data["tp2"],
-        "sl": data["sl"]
+        "sl": data["sl"],
+        "result": result
     }
 
     logs = []
