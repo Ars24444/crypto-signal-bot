@@ -117,7 +117,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     elif direction == "LONG":
         if btc_change_pct < -2.0 and btc_rsi < 35:
             btc_penalty = 1
-            btc_reason = "⚠️ BTC is falling hard – LONG is risky
+            btc_reason = "⚠️ BTC is falling hard – LONG is risky"
 
     # MA trend
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
