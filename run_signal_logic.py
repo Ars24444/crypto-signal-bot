@@ -22,7 +22,6 @@ def send_signals(force=False):
     print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}")
 
     symbols = get_top_volatile_symbols(limit=200)
-    print(f"🔍 Checking {len(symbols)} coins from top volatile list")
     active_usdt_symbols = get_active_usdt_symbols()
     used_symbols = set()
     count = 0
@@ -30,15 +29,9 @@ def send_signals(force=False):
     top_score = -1
     top_pick = None
     messages = []
-    
+
     for symbol in symbols:
-        if symbol in used_symbols:
-            continue
-
-        if not symbol.endswith("USDT"):
-            continue
-
-        if symbol not in active_usdt_symbols:
+        if symbol in used_symbols or not symbol.endswith("USDT") or symbol not in active_usdt_symbols:
             continue
 
         if is_blacklisted(symbol):
@@ -57,25 +50,16 @@ def send_signals(force=False):
 
         signal = result["type"]
         entry = result["entry"]
+        tp1 = result["tp1"]
+        tp2 = result["tp2"]
+        sl = result["sl"]
         score = result["score"]
         rsi = result["rsi"]
         ma10 = result["ma10"]
         ma30 = result["ma30"]
 
-        if score < 4 or signal not in ["LONG", "SHORT"]:
+        if score < 4:
             continue
-
-        entry_low = round(df["low"].iloc[-1] * 0.999, 4)
-        entry_high = round(df["high"].iloc[-1] * 1.001, 4)
-
-        if signal == "LONG":
-            sl = round(entry * 0.988, 4)
-            tp1 = round(entry * 1.03, 4)
-            tp2 = round(entry * 1.05, 4)
-        else:
-            sl = round(entry * 1.012, 4)
-            tp1 = round(entry * 0.97, 4)
-            tp2 = round(entry * 0.95, 4)
 
         signal_time = datetime.utcnow()
         signal_time_ms = int(signal_time.timestamp() * 1000)
@@ -95,16 +79,12 @@ def send_signals(force=False):
         print(f"🔹 Type: {signal}")
         print(f"🔹 RSI: {rsi}")
         print(f"🔹 MA Trend: MA10 > MA30 = {ma10 > ma30}")
-        print(f"🔹 Volume Spike: {df['volume'].iloc[-1]} > avg*1.5 = {df['volume'].iloc[-1] > 1.5 * df['volume'][-20:-5].mean()}")
+        print(f"🔹 Volume Spike: {df['volume'].iloc[-1]} > avg = {df['volume'].iloc[-1] > df['volume'][-20:-5].mean()}")
         candle_type = "Bullish" if signal == "LONG" and df['close'].iloc[-1] > df['open'].iloc[-1] else "Bearish" if signal == "SHORT" and df['close'].iloc[-1] < df['open'].iloc[-1] else "Weak"
         print(f"🔹 Candle: {candle_type}")
         print(f"🔹 BTC Trend Match: {'✅' if (signal == 'LONG' and btc_change_pct > 0) or (signal == 'SHORT' and btc_change_pct < 0) else '❌'}")
         print(f"🔹 Final Score: {score}")
         print(f"🔹 Result: {result_check}")
-
-        if score > top_score:
-            top_score = score
-            top_pick = symbol
 
         emoji = "🔥🔥🔥" if score == 5 else "🔥"
         message = (
@@ -113,7 +93,7 @@ def send_signals(force=False):
             f"Score: {score}/5\n"
             f"RSI: {rsi:.2f}\n"
             f"MA10: {ma10:.2f}, MA30: {ma30:.2f}\n"
-            f"Entry: {entry_low} – {entry_high}\n"
+            f"Entry: {round(entry * 0.998, 4)} – {round(entry * 1.002, 4)}\n"
             f"TP1: {tp1}\n"
             f"TP2: {tp2}\n"
             f"SL: {sl}\n"
@@ -123,6 +103,10 @@ def send_signals(force=False):
         messages.append((symbol, message))
         used_symbols.add(symbol)
         count += 1
+
+        if score > top_score:
+            top_score = score
+            top_pick = symbol
 
         if count >= 8:
             break
@@ -135,8 +119,7 @@ def send_signals(force=False):
                 print(f"\n📤 Sending signal for {symbol}:\n{msg}\n")
                 bot.send_message(chat_id=CHAT_ID, text=msg)
         else:
-            print("📭 No strong signals found.Market is calm.")
+            print("📭 No strong signals found. Market is calm.")
             bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
     except Exception as e:
         print("❌ ERROR in send_signals:", e)
-                  
