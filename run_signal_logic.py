@@ -16,7 +16,7 @@ bot = Bot(token=TELEGRAM_TOKEN)
 def send_signals(force=False):
     print("🚀 Signal function started")
 
-    btc_df = get_data("BTCUSDT")
+    btc_df = get_data("BTCUSDT", interval="15m", limit=10)
     btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-2]) / btc_df["close"].iloc[-2] * 100
     btc_rsi = RSIIndicator(btc_df["close"]).rsi().iloc[-1]
     print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}")
