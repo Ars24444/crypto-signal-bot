@@ -106,15 +106,18 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    # BTC influence
     btc_penalty = 0
     btc_reason = ""
-    if direction == "SHORT" and btc_change_pct > 2.0 and btc_rsi > 70:
-        btc_penalty = 1
-        btc_reason = "BTC is UP, risky SHORT"
-    elif direction == "LONG" and btc_change_pct < -2.0 and btc_rsi < 30:
-        btc_penalty = 1
-        btc_reason = "BTC is DOWN, risky LONG"
+
+    if direction == "SHORT":
+        if btc_change_pct > 2.0 and btc_rsi > 65:
+            btc_penalty = 1
+            btc_reason = "⚠️ BTC is rising hard – SHORT is risky"
+
+    elif direction == "LONG":
+        if btc_change_pct < -2.0 and btc_rsi < 35:
+            btc_penalty = 1
+            btc_reason = "⚠️ BTC is falling hard – LONG is risky
 
     # MA trend
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
