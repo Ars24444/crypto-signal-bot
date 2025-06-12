@@ -4,8 +4,16 @@ import os
 import threading
 
 BLACKLIST_FILE = "blacklist.json"
-BLACKLIST_DURATION = 6 * 60 * 60  # 6 hours
 _lock = threading.Lock()
+
+# Duration in seconds for each reason
+REASON_DURATIONS = {
+    "SL_hit": 2 * 60 * 60,         # 2 hours
+    "multiple_SL": 4 * 60 * 60,    # 4 hours
+    "scam_like": 6 * 60 * 60,      # 6 hours
+    "manual": 12 * 60 * 60,        # 12 hours
+    "Unknown": 1 * 60 * 60         # default 1 hour
+}
 
 def load_blacklist():
     if not os.path.exists(BLACKLIST_FILE):
@@ -28,24 +36,25 @@ def save_blacklist(blacklist):
 
 def add_to_blacklist(symbol, reason="Unknown"):
     blacklist = load_blacklist()
+    duration = REASON_DURATIONS.get(reason, REASON_DURATIONS["Unknown"])
+    
     blacklist[symbol] = {
         "time": int(time.time()),
-        "reason": reason
+        "reason": reason,
+        "duration": duration
     }
     save_blacklist(blacklist)
-    print(f"🚫 Added {symbol} to blacklist for {BLACKLIST_DURATION // 3600}h | Reason: {reason}")
+    print(f"🚫 Added {symbol} to blacklist for {duration // 3600}h | Reason: {reason}")
 
 def is_blacklisted(symbol):
     blacklist = load_blacklist()
     if symbol not in blacklist:
         return False
     entry = blacklist[symbol]
-    if isinstance(entry, dict):
-        elapsed = time.time() - entry.get("time", 0)
-    else:
-        # fallback for old format
-        elapsed = time.time() - entry
-    if elapsed > BLACKLIST_DURATION:
+    elapsed = time.time() - entry.get("time", 0)
+    duration = entry.get("duration", REASON_DURATIONS["Unknown"])
+
+    if elapsed > duration:
         print(f"🧹 Removed {symbol} from blacklist (expired)")
         del blacklist[symbol]
         save_blacklist(blacklist)
