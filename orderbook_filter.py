@@ -1,6 +1,6 @@
 import requests
 
-def is_orderbook_safe(symbol, min_depth_usdt=30000, max_spread_pct=1.0, min_spread_pct=0.03):
+def is_orderbook_safe(symbol, min_depth_usdt=15000, max_spread_pct=1.2, min_spread_pct=0.01):
     try:
         url = f"https://api.binance.com/api/v3/depth"
         params = {"symbol": symbol, "limit": 20}
@@ -14,8 +14,7 @@ def is_orderbook_safe(symbol, min_depth_usdt=30000, max_spread_pct=1.0, min_spre
 
         best_bid = float(bids[0][0])
         best_ask = float(asks[0][0])
-        spread = best_ask - best_bid
-        spread_pct = spread / best_bid * 100
+        spread_pct = (best_ask - best_bid) / best_bid * 100
 
         if spread_pct < min_spread_pct or spread_pct > max_spread_pct:
             return False
