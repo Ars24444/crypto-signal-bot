@@ -115,12 +115,17 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         btc_penalty = 1
     elif direction == "LONG" and btc_change_pct < -2.0 and btc_rsi < 35:
         btc_penalty = 1
+    # BTC strong SHORT bonus
+    if direction == "SHORT" and btc_change_pct < -2.0:
+        score += 1
+        print(f"{symbol} ➕ BTC is dumping ({btc_change_pct:.2f}%) – extra score for SHORT")
 
     # MA trend (soft check)
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
         score += 1
     else:
         print(f"{symbol} – no MA trend match for {direction}")
+    
 
     # Volume confirmation
     score += 1
@@ -176,6 +181,8 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if score < 4 and not is_whitelisted(symbol):
         print(f"{symbol} rejected – score {score}")
         return None
+        
+       print(f"🔍 {symbol} | DIR: {direction} | Score: {score}/5 | RSI: {last_rsi:.2f} | MA10: {last_ma10:.4f} / MA30: {last_ma30:.4f} | Vol: {current_volume:.2f} | BTC: {btc_change_pct:.2f}%") 
 
     return {
         "type": direction,
