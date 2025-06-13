@@ -111,12 +111,13 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    # BTC penalty
-    btc_penalty = 0
-    if direction == "SHORT" and btc_change_pct > 2.0 and btc_rsi > 65:
+    if direction == "SHORT" and btc_change_pct > 2.5 and btc_rsi > 70:
         btc_penalty = 1
-    elif direction == "LONG" and btc_change_pct < -2.0 and btc_rsi < 35:
+        print(f"⚠️ {symbol} SHORT penalized due to strong BTC uptrend")
+
+    elif direction == "LONG" and btc_change_pct < -2.5 and btc_rsi < 30:
         btc_penalty = 1
+        print(f"⚠️ {symbol} LONG penalized due to strong BTC downtrend")
 
     # BTC strong SHORT bonus
     if direction == "SHORT" and btc_change_pct < -2.0:
