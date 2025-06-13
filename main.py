@@ -2,8 +2,9 @@ from flask import Flask
 import threading
 from telegram import Bot
 from generate_summary import generate_summary
+from run_signal_logic import send_signals  
 
-TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs" 
+TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
 CHAT_ID = 5398864436
 
 bot = Bot(token=TELEGRAM_TOKEN)
@@ -12,6 +13,11 @@ app = Flask(__name__)
 @app.route("/", methods=["GET"])
 def home():
     return "🟢 Flask is working!", 200
+
+@app.route("/run", methods=["GET"])
+def run_signals():
+    threading.Thread(target=send_signals).start()
+    return "✅ Signal execution started!", 200
 
 @app.route("/send-summary", methods=["GET"])
 def send_summary():
