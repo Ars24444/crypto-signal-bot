@@ -64,9 +64,9 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
         return None
 
-    if not is_orderbook_safe(symbol):
-        print(f"⛔️ {symbol} skipped: orderbook not safe")
-        return None
+  # if not is_orderbook_safe(symbol):
+  #     print(f"⛔️ {symbol} skipped: orderbook not safe")
+  #     return None
 
     if not has_sufficient_trades(symbol):
         print(f"⛔️ {symbol} skipped: insufficient trades")
