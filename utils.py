@@ -88,6 +88,10 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
 
     if np.isnan(last_ma10) or np.isnan(last_ma30) or last_ma10 == 0 or last_ma30 == 0:
         return None
+        
+    if last_ma10 == 0 or last_ma30 == 0:
+        print(f"⚠️ {symbol} rejected due to invalid MA values (MA10={last_ma10}, MA30={last_ma30})")
+        return None
 
     avg_volume = volume[-20:-5].mean()
     current_volume = volume.iloc[-1]
