@@ -172,16 +172,15 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         tp2 = entry - 2.0 * atr
         sl = entry + 1.0 * atr
 
-    # Final orderbook rejection
-    orderbook_strength = get_orderbook_strength(symbol)
-    if direction == "LONG" and orderbook_strength == "bearish":
+    if direction == "LONG" and orderbook_strength == "bearish_strong":
+        print(f"{symbol} skipped due to strong sell wall")
         return None
-    if direction == "SHORT" and orderbook_strength == "bullish":
+    if direction == "SHORT" and orderbook_strength == "bullish_strong":
+        print(f"{symbol} skipped due to strong buy wall")
         return None
 
-    # Final score threshold
-    if score < 4 and not is_whitelisted(symbol):
-        print(f"❌ {symbol} rejected – score {score}")
+    if score < 4:
+        print(f"🔎 Debug: {symbol} rejected — score too low ({score})")
         return None
 
     print(f"🔍 {symbol} | DIR: {direction} | Score: {score}/5 | RSI: {last_rsi:.2f} | MA10: {last_ma10:.4f} / MA30: {last_ma30:.4f} | Vol: {current_volume:.2f} | BTC: {btc_change_pct:.2f}%")
