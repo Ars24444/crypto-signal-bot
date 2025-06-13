@@ -59,8 +59,7 @@ def get_data_15m(symbol, limit=100):
 
 def get_active_usdt_symbols():
     return get_top_volatile_symbols(limit=100)
-
-# ✅ Final strict signal evaluator
+    
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
         return None
@@ -117,11 +116,11 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     elif direction == "LONG" and btc_change_pct < -2.0 and btc_rsi < 35:
         btc_penalty = 1
 
-    # MA trend
+    # MA trend (soft check)
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
         score += 1
     else:
-        return None
+        print(f"{symbol} – no MA trend match for {direction}")
 
     # Volume confirmation
     score += 1
@@ -132,8 +131,12 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    # BTC direction bonus
+    # BTC trend bonus
     if (direction == "LONG" and btc_change_pct > 0.5) or (direction == "SHORT" and btc_change_pct < -0.5):
+        score += 1
+
+    # BTC strong SHORT bonus
+    if direction == "SHORT" and btc_change_pct < -2.0:
         score += 1
 
     score -= btc_penalty
@@ -144,7 +147,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if direction == "SHORT" and last_rsi <= 30:
         return None
 
-    # Last candle check
+    # Last candle confirmation
     if direction == "LONG" and last_close < last_open:
         return None
     if direction == "SHORT" and last_close > last_open:
@@ -153,7 +156,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if not is_safe_last_candle(df, signal_type=direction):
         return None
 
-    # ATR-based TP/SL
     atr = AverageTrueRange(high, low, close).average_true_range().iloc[-1]
     entry = last_close
     if direction == "LONG":
@@ -165,7 +167,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         tp2 = entry - 2.0 * atr
         sl = entry + 1.0 * atr
 
-    # Final orderbook check
     orderbook_strength = get_orderbook_strength(symbol)
     if direction == "LONG" and orderbook_strength == "bearish":
         return None
