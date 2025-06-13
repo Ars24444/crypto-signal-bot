@@ -1,29 +1,16 @@
 from flask import Flask
 import threading
-from run_signal_logic import send_signals
-from check_signal_result_runner import check_recent_signal_results
-from signal_logger import send_winrate_to_telegram
+from telegram import Bot
+from generate_summary import generate_summary
+
+TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
+CHAT_ID = 5398864436
+bot = Bot(token=TELEGRAM_TOKEN)
 
 app = Flask(__name__)
 
-@app.route("/", methods=["GET"])
-def home():
-    return "🟢 Crypto Signal Bot is online.", 200
-
-@app.route("/run", methods=["GET"])
-def run():
-    threading.Thread(target=send_signals).start()
-    return "✅ Signal execution started!", 200
-
-@app.route("/check_result", methods=["GET"])
-def check_result():
-    threading.Thread(target=check_recent_signal_results).start()
-    return "✅ Trade result check started!", 200
-
-@app.route("/run_winrate", methods=["GET"])
-def run_winrate():
-    threading.Thread(target=send_winrate_to_telegram, args=(50,)).start()
-    return "✅ Winrate report sent", 200
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+@app.route("/send-summary", methods=["GET"])
+def send_summary():
+    message = generate_summary()
+    bot.send_message(chat_id=CHAT_ID, text=message)
+    return "📤 Summary sent", 200
