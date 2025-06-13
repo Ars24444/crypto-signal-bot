@@ -1,3 +1,5 @@
+import requests
+import time
 def has_sufficient_trades(symbol, min_trades=50):
     try:
         url = "https://fapi.binance.com/fapi/v1/aggTrades"
