@@ -112,7 +112,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
         
-    btc_penalty=0    
+    btc_penalty = 0    
 
     if direction == "SHORT" and btc_change_pct > 2.5 and btc_rsi > 70:
         btc_penalty = 1
