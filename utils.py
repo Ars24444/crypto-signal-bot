@@ -172,12 +172,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         tp2 = entry - 2.0 * atr
         sl = entry + 1.0 * atr
 
-    if direction == "LONG" and orderbook_strength == "bearish_strong":
-        print(f"{symbol} skipped due to strong sell wall")
-        return None
-    if direction == "SHORT" and orderbook_strength == "bullish_strong":
-        print(f"{symbol} skipped due to strong buy wall")
-        return None
 
     if score < 4:
         print(f"🔎 Debug: {symbol} rejected — score too low ({score})")
