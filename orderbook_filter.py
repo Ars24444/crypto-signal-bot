@@ -1,6 +1,6 @@
 import requests
 
-def is_orderbook_safe(symbol, min_depth_usdt=15000, max_spread_pct=1.2, min_spread_pct=0.01):
+def is_orderbook_safe(symbol, min_depth_usdt=10000, max_spread_pct=1.2, min_spread_pct=0.01):
     try:
         url = f"https://api.binance.com/api/v3/depth"
         params = {"symbol": symbol, "limit": 20}
