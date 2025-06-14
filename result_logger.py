@@ -1,27 +1,23 @@
 import json
-import time
 import os
+from datetime import datetime
 
-RESULTS_FILE = "signal_results.json"
+RESULTS_FILE = "results.json"
 
-def save_result(symbol, signal_type, entry, tp1, tp2, sl, result):
+def log_trade_result(symbol, signal_type, result):
     data = []
     if os.path.exists(RESULTS_FILE):
         with open(RESULTS_FILE, "r") as f:
             try:
                 data = json.load(f)
-            except json.JSONDecodeError:
+            except:
                 data = []
 
     data.append({
         "symbol": symbol,
         "type": signal_type,
-        "entry": entry,
-        "tp1": tp1,
-        "tp2": tp2,
-        "sl": sl,
         "result": result,
-        "timestamp": time.time()
+        "time": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     })
 
     with open(RESULTS_FILE, "w") as f:
