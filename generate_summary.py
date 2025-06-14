@@ -1,5 +1,6 @@
 import json
 import time
+from datetime import datetime
 
 def generate_summary(filepath="signal_results.json"):
     try:
@@ -10,8 +11,18 @@ def generate_summary(filepath="signal_results.json"):
     except json.JSONDecodeError:
         return "⚠️ Error reading results file."
 
-    three_hours_ago = time.time() - 3 * 3600
-    recent = [d for d in data if d.get("timestamp", 0) >= three_hours_ago]
+    now = time.time()
+    three_hours_ago = now - 3 * 3600
+
+    recent = []
+    for d in data:
+        try:
+            timestamp = datetime.fromisoformat(d.get("timestamp")).timestamp()
+            if timestamp >= three_hours_ago:
+                recent.append(d)
+        except Exception:
+            continue
+
     total = len(recent)
     tp1 = sum(1 for d in recent if d.get("result") == "TP1")
     tp2 = sum(1 for d in recent if d.get("result") == "TP2")
