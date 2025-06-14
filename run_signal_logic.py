@@ -21,7 +21,7 @@ try:
     if btc_df is None or len(btc_df) < 10:
         print("❌ BTC data fetch failed or insufficient")
         bot.send_message(chat_id=CHAT_ID, text="⚠️ Signal bot: BTC data unavailable. Skipping signal check.")
-        return
+return
     btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-3]) / btc_df["close"].iloc[-3] * 100
     btc_rsi = RSIIndicator(btc_df["close"]).rsi().iloc[-1]
     print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}")
