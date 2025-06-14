@@ -28,7 +28,7 @@ try:
 except Exception as e:
     print("❌ Error loading BTC data:", e)
     bot.send_message(chat_id=CHAT_ID, text="⚠️ Signal bot: Failed to load BTC data.")
-    return
+return
 
     symbols = get_top_volatile_symbols(limit=200)
     active_usdt_symbols = get_active_usdt_symbols()
