@@ -84,6 +84,17 @@ def send_signals(force=False):
             sl=sl,
             signal_time_ms=signal_time_ms
         )
+        save_signal_result(
+            symbol=symbol,
+            signal_type=signal,
+            entry_zone=(round(entry * 0.998, 4), round(entry * 1.002, 4)),
+            tp1=tp1,
+            tp2=tp2,
+            sl=sl,
+            signal_time_ms=signal_time_ms
+        )
+        if score < 4:
+            continue
 
         print("\n📊 Signal Analysis Breakdown:")
         print(f"🔹 Symbol: {symbol}")
