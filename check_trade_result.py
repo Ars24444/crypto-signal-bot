@@ -1,6 +1,7 @@
 import requests
-from blacklist_manager import add_to_blacklist  # ✅ Auto blacklist
-from result_logger import log_trade_result      # ✅ New import for result tracking
+from blacklist_manager import add_to_blacklist  
+from result_logger import log_trade_result
+from update_signal_result import update_signal_result  
 
 def get_1m_data(symbol, start_time, minutes=180):
     url = "https://api.binance.com/api/v3/klines"
@@ -36,10 +37,12 @@ def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, signal_time_ms)
 
             if signal_type == "LONG":
                 if low <= sl:
+                    update_signal_result(symbol, signal_time_ms, "SL")
                     add_to_blacklist(symbol, reason="SL_hit")
                     log_trade_result(symbol, signal_type, "SL")
                     return "SL"
                 if high >= tp2:
+                    update_signal_result(symbol, signal_time_ms, "TP2")
                     log_trade_result(symbol, signal_type, "TP2")
                     return "TP2"
                 if high >= tp1:
@@ -47,19 +50,23 @@ def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, signal_time_ms)
 
             elif signal_type == "SHORT":
                 if high >= sl:
+                    update_signal_result(symbol, signal_time_ms, "SL")
                     add_to_blacklist(symbol, reason="SL_hit")
                     log_trade_result(symbol, signal_type, "SL")
                     return "SL"
                 if low <= tp2:
+                    update_signal_result(symbol, signal_time_ms, "TP2")
                     log_trade_result(symbol, signal_type, "TP2")
                     return "TP2"
                 if low <= tp1:
                     tp1_hit = True
 
         if tp1_hit:
+            update_signal_result(symbol, signal_time_ms, "TP1")
             log_trade_result(symbol, signal_type, "TP1")
             return "TP1"
 
+        update_signal_result(symbol, signal_time_ms, "NO HIT")
         log_trade_result(symbol, signal_type, "NO_HIT")
         return "NO HIT"
 
