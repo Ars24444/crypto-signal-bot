@@ -1,5 +1,6 @@
 import requests
-from blacklist_manager import add_to_blacklist  # ✅ New import
+from blacklist_manager import add_to_blacklist  # ✅ Auto blacklist
+from result_logger import log_trade_result      # ✅ New import for result tracking
 
 def get_1m_data(symbol, start_time, minutes=180):
     url = "https://api.binance.com/api/v3/klines"
@@ -35,25 +36,31 @@ def check_trade_result(symbol, signal_type, entry, tp1, tp2, sl, signal_time_ms)
 
             if signal_type == "LONG":
                 if low <= sl:
-                    add_to_blacklist(symbol, reason="SL_hit")  # ✅ Auto blacklist on SL
+                    add_to_blacklist(symbol, reason="SL_hit")
+                    log_trade_result(symbol, signal_type, "SL")
                     return "SL"
                 if high >= tp2:
+                    log_trade_result(symbol, signal_type, "TP2")
                     return "TP2"
                 if high >= tp1:
                     tp1_hit = True
 
             elif signal_type == "SHORT":
                 if high >= sl:
-                    add_to_blacklist(symbol, reason="SL_hit")  # ✅ Auto blacklist on SL
+                    add_to_blacklist(symbol, reason="SL_hit")
+                    log_trade_result(symbol, signal_type, "SL")
                     return "SL"
                 if low <= tp2:
+                    log_trade_result(symbol, signal_type, "TP2")
                     return "TP2"
                 if low <= tp1:
                     tp1_hit = True
 
         if tp1_hit:
+            log_trade_result(symbol, signal_type, "TP1")
             return "TP1"
 
+        log_trade_result(symbol, signal_type, "NO_HIT")
         return "NO HIT"
 
     except Exception as e:
