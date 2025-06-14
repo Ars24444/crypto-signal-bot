@@ -61,6 +61,7 @@ def get_active_usdt_symbols():
     return get_top_volatile_symbols(limit=100)
     
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
+    score = 0
     if df is None or len(df) < 30:
         return None
 
