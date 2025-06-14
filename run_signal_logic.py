@@ -6,8 +6,10 @@ from ta.volatility import AverageTrueRange
 from blacklist_manager import is_blacklisted, add_to_blacklist, get_blacklist_reason
 from check_trade_result import check_trade_result
 from signal_logger import log_sent_signal
+from save_signal_result import save_signal_result
 from datetime import datetime
 import os
+import time
 
 TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
 CHAT_ID = 5398864436
@@ -94,6 +96,17 @@ def send_signals(force=False):
         print(f"🔹 BTC Trend Match: {'✅' if (signal == 'LONG' and btc_change_pct > 0) or (signal == 'SHORT' and btc_change_pct < 0) else '❌'}")
         print(f"🔹 Final Score: {score}")
         print(f"🔹 Result: {result_check}")
+
+        # ✅ Պահպանել սիգնալը JSON ֆայլում
+        save_signal_result(
+            symbol=symbol,
+            signal_type=signal,
+            entry_zone=(round(entry * 0.998, 4), round(entry * 1.002, 4)),
+            tp1=tp1,
+            tp2=tp2,
+            sl=sl,
+            signal_time_ms=signal_time_ms
+        )
 
         emoji = "🔥🔥🔥" if score == 5 else "🔥"
         message = (
