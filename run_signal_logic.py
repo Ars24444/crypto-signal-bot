@@ -21,7 +21,7 @@ def send_signals(force=False):
     try:
         print("🔍 Trying to load BTC data...", flush=True)
         btc_df = get_data_15m("BTCUSDT")
-        print(f"🔍 BTC data loaded: {len(btc_df)} rows")
+        print(f"🔍 BTC data loaded: {len(btc_df)} rows", flask=True)
 
         if btc_df is None or len(btc_df) < 10:
             print(f"🔍 BTC data loaded: {len(btc_df)} rows", flush=True)
@@ -130,7 +130,7 @@ def send_signals(force=False):
             for symbol, msg in messages:
                 if symbol == top_pick:
                     msg = "🔝 TOP PICK\n" + msg
-                print(f"\n📤 Sending signal for {symbol}:\n{msg}\n")
+                print(f"\n📤 Sending signal for {symbol}:\n{msg}\n", flask=True)
                 bot.send_message(chat_id=CHAT_ID, text=msg)
         else:
             print("📭 No strong signals found. Market is calm.", flush=True)
