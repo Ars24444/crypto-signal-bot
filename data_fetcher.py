@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+from get_top_symbols import get_top_volatile_symbols
 
 def get_data(symbol, interval='1h', limit=100):
     url = 'https://api.binance.com/api/v3/klines'
@@ -22,3 +23,6 @@ def get_data(symbol, interval='1h', limit=100):
 
 def get_data_15m(symbol, limit=100):
     return get_data(symbol, interval="15m", limit=limit)
+
+def get_active_usdt_symbols():
+    return get_top_volatile_symbols(limit=100)
