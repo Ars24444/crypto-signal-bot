@@ -1,4 +1,4 @@
-from utils import get_data
+from data_fetcher import get_data
 
 def check_btc_influence(signal_type="LONG"):
     """
