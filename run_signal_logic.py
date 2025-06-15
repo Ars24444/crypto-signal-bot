@@ -108,7 +108,7 @@ def send_signals(force=False):
         print(f"🔹 Final Score: {score}")
         print(f"🔹 Result: {result_check}")
 
-        # ✅ Պահպանել սիգնալը JSON ֆայլում
+        
         save_signal_result(
             symbol=symbol,
             signal_type=signal,
