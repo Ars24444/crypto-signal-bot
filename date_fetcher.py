@@ -7,6 +7,7 @@ def get_data(symbol, interval='1h', limit=100):
     response = requests.get(url, params=params)
     if response.status_code != 200:
         return None
+
     data = response.json()
     if not isinstance(data, list):
         return None
