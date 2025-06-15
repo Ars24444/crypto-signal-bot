@@ -11,7 +11,7 @@ from whitelist_manager import is_whitelisted
 from get_top_symbols import get_top_volatile_symbols
 from safe_candle_checker import is_safe_last_candle
 from trade_volume_filter import has_sufficient_trades
-from data_fetcher import get_data, get_data_15m
+from data_fetcher import get_data
 
 def get_orderbook_strength(symbol, limit=5):
     try:
