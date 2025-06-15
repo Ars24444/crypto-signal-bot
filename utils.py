@@ -65,10 +65,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
         return None
 
-  # if not is_orderbook_safe(symbol):
-  #     print(f"⛔️ {symbol} skipped: orderbook not safe")
-  #     return None
-
     if not has_sufficient_trades(symbol):
         print(f"⛔️ {symbol} skipped: insufficient trades")
         return None
@@ -89,14 +85,27 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
 
     if np.isnan(last_ma10) or np.isnan(last_ma30) or last_ma10 == 0 or last_ma30 == 0:
         return None
-        
-    if last_ma10 == 0 or last_ma30 == 0:
-        print(f"⚠️ {symbol} rejected due to invalid MA values (MA10={last_ma10}, MA30={last_ma30})")
-        return None
 
     avg_volume = volume[-20:-5].mean()
     current_volume = volume.iloc[-1]
-    
+
+    # ✅ Low price filter (reject tiny coins)
+    if last_close < 0.005:
+        print(f"⛔️ {symbol} skipped: too low price ({last_close:.6f})")
+        return None
+
+    # ✅ Tiny movement filter (reject flat movers)
+    intraday_range = high.iloc[-1] - low.iloc[-1]
+    if intraday_range < last_close * 0.005:
+        print(f"⛔️ {symbol} skipped: too small price range")
+        return None
+
+    # ✅ Weak volume filter
+    if current_volume < avg_volume * 1.5:
+        print(f"⛔️ {symbol} skipped: weak volume ({current_volume:.0f} < 1.5x avg {avg_volume:.0f})")
+        return None
+
+    # Weak market + weak volume = penalty
     if abs(btc_change_pct) < 0.3 and current_volume < 0.15 * avg_volume:
         score -= 1
         print(f"⚠️ {symbol} penalized -1 due to weak volume in calm market ({current_volume:.0f} < {avg_volume:.0f})")
@@ -116,13 +125,11 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         score += 1
     else:
         return None
-        
-    btc_penalty = 0    
 
+    btc_penalty = 0
     if direction == "SHORT" and btc_change_pct > 2.5 and btc_rsi > 70:
         btc_penalty = 1
         print(f"⚠️ {symbol} SHORT penalized due to strong BTC uptrend")
-
     elif direction == "LONG" and btc_change_pct < -2.5 and btc_rsi < 30:
         btc_penalty = 1
         print(f"⚠️ {symbol} LONG penalized due to strong BTC downtrend")
@@ -180,7 +187,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         tp1 = entry - 1.2 * atr
         tp2 = entry - 2.0 * atr
         sl = entry + 1.0 * atr
-
 
     if score < 4:
         print(f"🔎 Debug: {symbol} rejected — score too low ({score})")
