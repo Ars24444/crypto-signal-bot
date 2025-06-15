@@ -19,7 +19,10 @@ def send_signals(force=False):
     print("🚀 Signal function started")
 
     try:
+        print("🔍 Trying to load BTC data...")
         btc_df = get_data_15m("BTCUSDT")
+        print(f"🔍 BTC data loaded: {len(btc_df)} rows")
+        
         if btc_df is None or len(btc_df) < 10:
             print("❌ BTC data fetch failed or insufficient")
             bot.send_message(chat_id=CHAT_ID, text="⚠️ Signal bot: BTC data unavailable. Skipping signal check.")
