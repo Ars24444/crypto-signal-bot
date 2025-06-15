@@ -22,11 +22,12 @@ def send_signals(force=False):
         print("🔍 Trying to load BTC data...")
         btc_df = get_data_15m("BTCUSDT")
         print(f"🔍 BTC data loaded: {len(btc_df)} rows")
-        
+
         if btc_df is None or len(btc_df) < 10:
             print("❌ BTC data fetch failed or insufficient")
             bot.send_message(chat_id=CHAT_ID, text="⚠️ Signal bot: BTC data unavailable. Skipping signal check.")
             return
+
         btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-3]) / btc_df["close"].iloc[-3] * 100
         btc_rsi = RSIIndicator(btc_df["close"]).rsi().iloc[-1]
         print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}")
@@ -39,7 +40,6 @@ def send_signals(force=False):
     active_usdt_symbols = get_active_usdt_symbols()
     used_symbols = set()
     count = 0
-
     top_score = -1
     top_pick = None
     messages = []
@@ -73,6 +73,7 @@ def send_signals(force=False):
         ma30 = result["ma30"]
 
         if score < 4:
+            print(f"⚠️ {symbol} skipped – score too low: {score}")
             continue
 
         signal_time = datetime.utcnow()
@@ -87,17 +88,6 @@ def send_signals(force=False):
             sl=sl,
             signal_time_ms=signal_time_ms
         )
-        save_signal_result(
-            symbol=symbol,
-            signal_type=signal,
-            entry_zone=(round(entry * 0.998, 4), round(entry * 1.002, 4)),
-            tp1=tp1,
-            tp2=tp2,
-            sl=sl,
-            signal_time_ms=signal_time_ms
-        )
-        if score < 4:
-            continue
 
         print("\n📊 Signal Analysis Breakdown:")
         print(f"🔹 Symbol: {symbol}")
@@ -110,17 +100,6 @@ def send_signals(force=False):
         print(f"🔹 BTC Trend Match: {'✅' if (signal == 'LONG' and btc_change_pct > 0) or (signal == 'SHORT' and btc_change_pct < 0) else '❌'}")
         print(f"🔹 Final Score: {score}")
         print(f"🔹 Result: {result_check}")
-
-        
-        save_signal_result(
-            symbol=symbol,
-            signal_type=signal,
-            entry_zone=(round(entry * 0.998, 4), round(entry * 1.002, 4)),
-            tp1=tp1,
-            tp2=tp2,
-            sl=sl,
-            signal_time_ms=signal_time_ms
-        )
 
         emoji = "🔥🔥🔥" if score == 5 else "🔥"
         message = (
