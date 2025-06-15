@@ -88,7 +88,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     avg_volume = volume[-20:-5].mean()
     current_volume = volume.iloc[-1]
 
-    if last_close < 0.005:
+    if last_close < 0.0001:
         print(f"⛔️ {symbol} skipped: too low price ({last_close:.6f})")
         return None
 
@@ -96,12 +96,9 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         print(f"⛔️ {symbol} skipped: too small price range")
         return None
 
-    if current_volume < avg_volume * 1.5:
-        print(f"⛔️ {symbol} skipped: weak volume ({current_volume:.0f} < 1.5x avg {avg_volume:.0f})")
-        return None
-
+    # ⚠️ Only penalize in calm markets
     if abs(btc_change_pct) < 0.3 and current_volume < 0.15 * avg_volume:
-        print(f"⚠️ {symbol} penalized -1 due to weak volume in calm market")
+        print(f"⚠️ {symbol} penalized - weak volume in calm market")
         return None
 
     bullish_candles = last_close > last_open and prev_close > prev_open
@@ -119,7 +116,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    # ✅ BTC influence filter (final decision gate)
+    # ✅ BTC influence filter
     if not check_btc_influence(signal_type=direction):
         return None
 
