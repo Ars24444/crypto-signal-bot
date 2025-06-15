@@ -59,8 +59,8 @@ def get_data_15m(symbol, limit=100):
 
 def get_active_usdt_symbols():
     return get_top_volatile_symbols(limit=100)
-    def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
-    score = 0
+
+def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
         return None
 
@@ -88,26 +88,21 @@ def get_active_usdt_symbols():
     avg_volume = volume[-20:-5].mean()
     current_volume = volume.iloc[-1]
 
-    # ✅ Low price filter (reject tiny coins)
     if last_close < 0.005:
         print(f"⛔️ {symbol} skipped: too low price ({last_close:.6f})")
         return None
 
-    # ✅ Tiny movement filter (reject flat movers)
-    intraday_range = high.iloc[-1] - low.iloc[-1]
-    if intraday_range < last_close * 0.005:
+    if high.iloc[-1] - low.iloc[-1] < last_close * 0.005:
         print(f"⛔️ {symbol} skipped: too small price range")
         return None
 
-    # ✅ Weak volume filter
     if current_volume < avg_volume * 1.5:
         print(f"⛔️ {symbol} skipped: weak volume ({current_volume:.0f} < 1.5x avg {avg_volume:.0f})")
         return None
 
-    # Weak market + weak volume = penalty
     if abs(btc_change_pct) < 0.3 and current_volume < 0.15 * avg_volume:
-        score -= 1
         print(f"⚠️ {symbol} penalized -1 due to weak volume in calm market")
+        return None
 
     bullish_candles = last_close > last_open and prev_close > prev_open
     bearish_candles = last_close < last_open and prev_close < prev_open
@@ -115,7 +110,6 @@ def get_active_usdt_symbols():
     direction = None
     score = 0
 
-    # RSI direction
     if last_rsi < 40:
         direction = "SHORT"
         score += 1
@@ -125,11 +119,10 @@ def get_active_usdt_symbols():
     else:
         return None
 
-    # ✅ Check BTC influence
+    # ✅ BTC influence filter (final decision gate)
     if not check_btc_influence(signal_type=direction):
         return None
 
-    # BTC penalty
     btc_penalty = 0
     if direction == "SHORT" and btc_change_pct > 2.5 and btc_rsi > 70:
         btc_penalty = 1
@@ -138,40 +131,32 @@ def get_active_usdt_symbols():
         btc_penalty = 1
         print(f"⚠️ {symbol} LONG penalized due to strong BTC downtrend")
 
-    # BTC dumping bonus
     if direction == "SHORT" and btc_change_pct < -2.0:
         score += 1
-        print(f"{symbol} ➕ BTC dumping ({btc_change_pct:.2f}%) – bonus for SHORT")
 
-    # ✅ MA trend check
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
         score += 1
     else:
         print(f"⚠️ {symbol} – MA trend not matched for {direction}")
         return None
 
-    # Volume confirmation
-    score += 1
+    score += 1  # Volume confirmed
 
-    # Candle structure
     if (direction == "LONG" and bullish_candles) or (direction == "SHORT" and bearish_candles):
         score += 1
     else:
         return None
 
-    # BTC directional bonus
     if (direction == "LONG" and btc_change_pct > 0.5) or (direction == "SHORT" and btc_change_pct < -0.5):
         score += 1
 
     score -= btc_penalty
 
-    # RSI rejection
     if direction == "LONG" and last_rsi >= 70:
         return None
     if direction == "SHORT" and last_rsi <= 30:
         return None
 
-    # Last candle confirmation
     if direction == "LONG" and last_close < last_open:
         return None
     if direction == "SHORT" and last_close > last_open:
@@ -180,17 +165,11 @@ def get_active_usdt_symbols():
     if not is_safe_last_candle(df, signal_type=direction):
         return None
 
-    # ✅ TP/SL using ATR
     atr = AverageTrueRange(high, low, close).average_true_range().iloc[-1]
     entry = last_close
-    if direction == "LONG":
-        tp1 = entry + 1.2 * atr
-        tp2 = entry + 2.0 * atr
-        sl = entry - 1.0 * atr
-    else:
-        tp1 = entry - 1.2 * atr
-        tp2 = entry - 2.0 * atr
-        sl = entry + 1.0 * atr
+    tp1 = entry + 1.2 * atr if direction == "LONG" else entry - 1.2 * atr
+    tp2 = entry + 2.0 * atr if direction == "LONG" else entry - 2.0 * atr
+    sl = entry - 1.0 * atr if direction == "LONG" else entry + 1.0 * atr
 
     if score < 4:
         print(f"🔎 Debug: {symbol} rejected — score too low ({score})")
