@@ -16,23 +16,23 @@ CHAT_ID = 5398864436
 bot = Bot(token=TELEGRAM_TOKEN)
 
 def send_signals(force=False):
-    print("🚀 Signal function started")
+    print("🚀 Signal function started", flush=True)
 
     try:
-        print("🔍 Trying to load BTC data...")
+        print("🔍 Trying to load BTC data...", flush=True)
         btc_df = get_data_15m("BTCUSDT")
         print(f"🔍 BTC data loaded: {len(btc_df)} rows")
 
         if btc_df is None or len(btc_df) < 10:
-            print("❌ BTC data fetch failed or insufficient")
+            print(f"🔍 BTC data loaded: {len(btc_df)} rows", flush=True)
             bot.send_message(chat_id=CHAT_ID, text="⚠️ Signal bot: BTC data unavailable. Skipping signal check.")
             return
 
         btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-3]) / btc_df["close"].iloc[-3] * 100
         btc_rsi = RSIIndicator(btc_df["close"]).rsi().iloc[-1]
-        print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}")
+        print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}", flush=True)
     except Exception as e:
-        print("❌ Error loading BTC data:", e)
+        print("❌ Error loading BTC data:", e, flush=True)
         bot.send_message(chat_id=CHAT_ID, text="⚠️ Signal bot: Failed to load BTC data.")
         return
 
@@ -49,17 +49,17 @@ def send_signals(force=False):
             continue
 
         if is_blacklisted(symbol):
-            print(f"⛔️ Skipping {symbol} — blacklisted ({get_blacklist_reason(symbol)})")
+            print(f"⛔️ Skipping {symbol} — blacklisted ({get_blacklist_reason(symbol)})", flush=True)
             continue
 
         df = get_data(symbol)
         if df is None or len(df) < 50 or df["close"].iloc[-1] == 0:
-            print(f"⚠️ Skipping {symbol} – invalid data")
+            print(f"⚠️ Skipping {symbol} – invalid data", flush=True)
             continue
 
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
         if not result:
-            print(f"🔎 Debug: {symbol} rejected by signal filter")
+            print(f"🔎 Debug: {symbol} rejected by signal filter", flush=True)
             continue
 
         signal = result["type"]
@@ -73,7 +73,7 @@ def send_signals(force=False):
         ma30 = result["ma30"]
 
         if score < 4:
-            print(f"⚠️ {symbol} skipped – score too low: {score}")
+            print(f"⚠️ {symbol} skipped – score too low: {score}", flush=True)
             continue
 
         signal_time = datetime.utcnow()
@@ -89,17 +89,16 @@ def send_signals(force=False):
             signal_time_ms=signal_time_ms
         )
 
-        print("\n📊 Signal Analysis Breakdown:")
-        print(f"🔹 Symbol: {symbol}")
-        print(f"🔹 Type: {signal}")
-        print(f"🔹 RSI: {rsi}")
-        print(f"🔹 MA Trend: MA10 > MA30 = {ma10 > ma30}")
-        print(f"🔹 Volume Spike: {df['volume'].iloc[-1]} > avg = {df['volume'].iloc[-1] > df['volume'][-20:-5].mean()}")
-        candle_type = "Bullish" if signal == "LONG" and df['close'].iloc[-1] > df['open'].iloc[-1] else "Bearish" if signal == "SHORT" and df['close'].iloc[-1] < df['open'].iloc[-1] else "Weak"
-        print(f"🔹 Candle: {candle_type}")
-        print(f"🔹 BTC Trend Match: {'✅' if (signal == 'LONG' and btc_change_pct > 0) or (signal == 'SHORT' and btc_change_pct < 0) else '❌'}")
-        print(f"🔹 Final Score: {score}")
-        print(f"🔹 Result: {result_check}")
+        print("\n📊 Signal Analysis Breakdown:", flush=True)
+        print(f"🔹 Symbol: {symbol}", flush=True)
+        print(f"🔹 Type: {signal}", flush=True)
+        print(f"🔹 RSI: {rsi}", flush=True)
+        print(f"🔹 MA Trend: MA10 > MA30 = {ma10 > ma30}", flush=True)
+        print(f"🔹 Volume Spike: {df['volume'].iloc[-1]} > avg = {df['volume'].iloc[-1] > df['volume'][-20:-5].mean()}", flush=True)
+        print(f"🔹 Candle: {candle_type}", flush=True)
+        print(f"🔹 BTC Trend Match: {'✅' if (signal == 'LONG' and btc_change_pct > 0) or (signal == 'SHORT' and btc_change_pct < 0) else '❌'}", flush=True)
+        print(f"🔹 Final Score: {score}", flush=True)
+        print(f"🔹 Result: {result_check}", flush=True)
 
         emoji = "🔥🔥🔥" if score == 5 else "🔥"
         message = (
@@ -134,7 +133,7 @@ def send_signals(force=False):
                 print(f"\n📤 Sending signal for {symbol}:\n{msg}\n")
                 bot.send_message(chat_id=CHAT_ID, text=msg)
         else:
-            print("📭 No strong signals found. Market is calm.")
+            print("📭 No strong signals found. Market is calm.", flush=True)
             bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
     except Exception as e:
         print("❌ ERROR in send_signals:", e)
