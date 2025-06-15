@@ -1,16 +1,18 @@
-from data_fetcher import get_data, get_data_15m
-from data_fetcher import get_active_usdt_symbols
-from get_top_symbols import get_top_volatile_symbols
+import os
+import time
+from datetime import datetime
+
 from telegram import Bot
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
-from blacklist_manager import is_blacklisted, add_to_blacklist, get_blacklist_reason
-from check_trade_result import check_trade_result
+
+from data_fetcher import get_data, get_data_15m, get_active_usdt_symbols
+from get_top_symbols import get_top_volatile_symbols
 from signal_logger import log_sent_signal
 from save_signal_result import save_signal_result
-from datetime import datetime
-import os
-import time
+from check_trade_result import check_trade_result
+from blacklist_manager import is_blacklisted, add_to_blacklist, get_blacklist_reason
+from utils import is_strong_signal
 
 TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
 CHAT_ID = 5398864436
