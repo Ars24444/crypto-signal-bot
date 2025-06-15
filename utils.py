@@ -5,12 +5,12 @@ import numpy as np
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
-
+from btc_filter import check_btc_influence
 from orderbook_filter import is_orderbook_safe
 from whitelist_manager import is_whitelisted
 from get_top_symbols import get_top_volatile_symbols
-from safe_candle_checker import is_safe_last_candle  # ✅ Required
-from trade_volume_filter import has_sufficient_trades  # ✅ New required import
+from safe_candle_checker import is_safe_last_candle  
+from trade_volume_filter import has_sufficient_trades  
 
 # ✅ Optional: For extra orderbook structure
 def get_orderbook_strength(symbol, limit=5):
@@ -59,8 +59,7 @@ def get_data_15m(symbol, limit=100):
 
 def get_active_usdt_symbols():
     return get_top_volatile_symbols(limit=100)
-    
-def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
+    def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     score = 0
     if df is None or len(df) < 30:
         return None
@@ -108,7 +107,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     # Weak market + weak volume = penalty
     if abs(btc_change_pct) < 0.3 and current_volume < 0.15 * avg_volume:
         score -= 1
-        print(f"⚠️ {symbol} penalized -1 due to weak volume in calm market ({current_volume:.0f} < {avg_volume:.0f})")
+        print(f"⚠️ {symbol} penalized -1 due to weak volume in calm market")
 
     bullish_candles = last_close > last_open and prev_close > prev_open
     bearish_candles = last_close < last_open and prev_close < prev_open
@@ -116,7 +115,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     direction = None
     score = 0
 
-    # RSI
+    # RSI direction
     if last_rsi < 40:
         direction = "SHORT"
         score += 1
@@ -126,6 +125,11 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
+    # ✅ Check BTC influence
+    if not check_btc_influence(signal_type=direction):
+        return None
+
+    # BTC penalty
     btc_penalty = 0
     if direction == "SHORT" and btc_change_pct > 2.5 and btc_rsi > 70:
         btc_penalty = 1
@@ -134,12 +138,12 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         btc_penalty = 1
         print(f"⚠️ {symbol} LONG penalized due to strong BTC downtrend")
 
-    # BTC strong SHORT bonus
+    # BTC dumping bonus
     if direction == "SHORT" and btc_change_pct < -2.0:
         score += 1
         print(f"{symbol} ➕ BTC dumping ({btc_change_pct:.2f}%) – bonus for SHORT")
 
-    # MA trend check
+    # ✅ MA trend check
     if (direction == "LONG" and last_ma10 > last_ma30) or (direction == "SHORT" and last_ma10 < last_ma30):
         score += 1
     else:
@@ -161,7 +165,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
 
     score -= btc_penalty
 
-    # RSI overbought/oversold rejection
+    # RSI rejection
     if direction == "LONG" and last_rsi >= 70:
         return None
     if direction == "SHORT" and last_rsi <= 30:
@@ -176,7 +180,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if not is_safe_last_candle(df, signal_type=direction):
         return None
 
-    # TP / SL using ATR
+    # ✅ TP/SL using ATR
     atr = AverageTrueRange(high, low, close).average_true_range().iloc[-1]
     entry = last_close
     if direction == "LONG":
