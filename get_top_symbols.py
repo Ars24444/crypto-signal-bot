@@ -22,17 +22,22 @@ def get_active_symbols_by_trades(symbols, interval='15m', limit=1, min_buy_volum
             taker_buy_volume = float(kline[9])
             taker_sell_volume = volume - taker_buy_volume
 
-            # ✅ Reject if any value is zero
             if close == 0 or open_ == 0 or high == 0 or low == 0 or volume == 0:
                 continue
 
-            if taker_buy_volume >= min_buy_volume and taker_sell_volume >= min_sell_volume:
-                active_symbols.append(symbol)
+            # ✅ Reject weak taker volumes or clear imbalance
+            if taker_buy_volume < min_buy_volume or taker_sell_volume < min_sell_volume:
+                continue
+            ratio = taker_buy_volume / volume
+            if ratio < 0.05 or ratio > 0.95:
+                continue
+
+            active_symbols.append(symbol)
         except Exception as e:
             print(f"⚠️ Error checking {symbol}: {e}")
     return active_symbols
 
-def get_top_volatile_symbols(limit=200, min_volume_usdt=300_000):
+def get_top_volatile_symbols(limit=200, min_volume_usdt=500_000):
     try:
         url = "https://api.binance.com/api/v3/ticker/24hr"
         response = requests.get(url, timeout=10)
@@ -45,6 +50,8 @@ def get_top_volatile_symbols(limit=200, min_volume_usdt=300_000):
         return []
 
     symbols = []
+    blacklist_keywords = ["UP", "DOWN", "BULL", "BEAR", "BUSD", "TRY", "EUR", "1000", "TUSD", "FDUSD"]
+
     for d in data:
         symbol = d['symbol']
         quote_volume = float(d.get('quoteVolume', 0))
@@ -52,9 +59,9 @@ def get_top_volatile_symbols(limit=200, min_volume_usdt=300_000):
 
         if (
             not symbol.endswith("USDT") or
-            any(x in symbol for x in ["UP", "DOWN", "BULL", "BEAR", "BUSD", "TRY", "EUR", "1000"]) or
+            any(x in symbol for x in blacklist_keywords) or
             quote_volume < min_volume_usdt or
-            price_change_pct < 3
+            price_change_pct < 4.5  
         ):
             continue
 
