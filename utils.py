@@ -9,10 +9,9 @@ from btc_filter import check_btc_influence
 from orderbook_filter import is_orderbook_safe
 from whitelist_manager import is_whitelisted
 from get_top_symbols import get_top_volatile_symbols
-from safe_candle_checker import is_safe_last_candle  
-from trade_volume_filter import has_sufficient_trades  
+from safe_candle_checker import is_safe_last_candle
+from trade_volume_filter import has_sufficient_trades
 
-# ✅ Optional: For extra orderbook structure
 def get_orderbook_strength(symbol, limit=5):
     try:
         url = f"https://api.binance.com/api/v3/depth"
@@ -59,13 +58,13 @@ def get_data_15m(symbol, limit=100):
 
 def get_active_usdt_symbols():
     return get_top_volatile_symbols(limit=100)
-    
-all = [
+
+__all__ = [
     "get_data", 
     "get_data_15m", 
     "get_orderbook_strength", 
     "get_active_usdt_symbols"
-]    
+]
 
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if df is None or len(df) < 30:
@@ -103,7 +102,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         print(f"⛔️ {symbol} skipped: too small price range")
         return None
 
-    # ⚠️ Only penalize in calm markets
     if abs(btc_change_pct) < 0.3 and current_volume < 0.15 * avg_volume:
         print(f"⚠️ {symbol} penalized - weak volume in calm market")
         return None
@@ -123,7 +121,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         return None
 
-    # ✅ BTC influence filter
     if not check_btc_influence(signal_type=direction):
         return None
 
