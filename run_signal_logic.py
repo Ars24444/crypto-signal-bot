@@ -1,4 +1,4 @@
-from data_fetcher import get_data, get_date_15m
+from data_fetcher import get_data
 from get_top_symbols import get_top_volatile_symbols
 from telegram import Bot
 from ta.momentum import RSIIndicator
