@@ -54,7 +54,7 @@ def send_signals(force=False):
 
         df = get_data(symbol)
         if df is None or len(df) < 50 or df["close"].iloc[-1] == 0:
-            print(f"⚠️ Skipping {symbol} – invalid data", flush=True)
+            print(f"⚠️ Skipping {symbol} – invalid data")
             continue
 
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
