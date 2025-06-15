@@ -72,6 +72,14 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if not has_sufficient_trades(symbol):
         print(f"⛔️ {symbol} skipped: insufficient trades")
         return None
+    orderbook_strength = get_orderbook_strength(symbol)
+    
+    if direction == "LONG" and orderbook_strength == "bearish":
+        print(f"📉 {symbol} rejected due to strong sell wall (orderbook bearish)")
+        return None
+    if direction == "SHORT" and orderbook_strength == "bullish":
+        print(f"📈 {symbol} rejected due to strong buy wall (orderbook bullish)")
+        return None   
 
     close = df['close']
     open_ = df['open']
