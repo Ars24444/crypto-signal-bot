@@ -57,8 +57,6 @@ def get_data(symbol, interval='1h', limit=100):
 def get_data_15m(symbol, limit=100):
     return get_data(symbol, interval="15m", limit=limit)
 
-def get_active_usdt_symbols():
-    return get_top_volatile_symbols(limit=100)
 
 __all__ = [
     "get_data", 
