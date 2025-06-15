@@ -21,16 +21,17 @@ def send_signals(force=False):
     try:
         print("🔍 Trying to load BTC data...", flush=True)
         btc_df = get_data_15m("BTCUSDT")
-        print(f"🔍 BTC data loaded: {len(btc_df)} rows", flask=True)
+        print(f"🔍 BTC data loaded: {len(btc_df)} rows", flush=True)
 
         if btc_df is None or len(btc_df) < 10:
-            print(f"🔍 BTC data loaded: {len(btc_df)} rows", flush=True)
+            print("❌ BTC data fetch failed or insufficient", flush=True)
             bot.send_message(chat_id=CHAT_ID, text="⚠️ Signal bot: BTC data unavailable. Skipping signal check.")
             return
 
         btc_change_pct = (btc_df["close"].iloc[-1] - btc_df["close"].iloc[-3]) / btc_df["close"].iloc[-3] * 100
         btc_rsi = RSIIndicator(btc_df["close"]).rsi().iloc[-1]
         print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}", flush=True)
+
     except Exception as e:
         print("❌ Error loading BTC data:", e, flush=True)
         bot.send_message(chat_id=CHAT_ID, text="⚠️ Signal bot: Failed to load BTC data.")
@@ -54,7 +55,7 @@ def send_signals(force=False):
 
         df = get_data(symbol)
         if df is None or len(df) < 50 or df["close"].iloc[-1] == 0:
-            print(f"⚠️ Skipping {symbol} – invalid data")
+            print(f"⚠️ Skipping {symbol} – invalid data", flush=True)
             continue
 
         result = is_strong_signal(df, btc_change_pct, btc_rsi, symbol=symbol)
@@ -95,6 +96,7 @@ def send_signals(force=False):
         print(f"🔹 RSI: {rsi}", flush=True)
         print(f"🔹 MA Trend: MA10 > MA30 = {ma10 > ma30}", flush=True)
         print(f"🔹 Volume Spike: {df['volume'].iloc[-1]} > avg = {df['volume'].iloc[-1] > df['volume'][-20:-5].mean()}", flush=True)
+        candle_type = "Bullish" if signal == "LONG" and df['close'].iloc[-1] > df['open'].iloc[-1] else "Bearish" if signal == "SHORT" and df['close'].iloc[-1] < df['open'].iloc[-1] else "Weak"
         print(f"🔹 Candle: {candle_type}", flush=True)
         print(f"🔹 BTC Trend Match: {'✅' if (signal == 'LONG' and btc_change_pct > 0) or (signal == 'SHORT' and btc_change_pct < 0) else '❌'}", flush=True)
         print(f"🔹 Final Score: {score}", flush=True)
@@ -130,10 +132,10 @@ def send_signals(force=False):
             for symbol, msg in messages:
                 if symbol == top_pick:
                     msg = "🔝 TOP PICK\n" + msg
-                print(f"\n📤 Sending signal for {symbol}:\n{msg}\n", flask=True)
+                print(f"\n📤 Sending signal for {symbol}:\n{msg}\n", flush=True)
                 bot.send_message(chat_id=CHAT_ID, text=msg)
         else:
             print("📭 No strong signals found. Market is calm.", flush=True)
             bot.send_message(chat_id=CHAT_ID, text="📩 No strong signals found. Market is calm.")
     except Exception as e:
-        print("❌ ERROR in send_signals:", e)
+        print("❌ ERROR in send_signals:", e, flush=True)
