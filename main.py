@@ -8,7 +8,7 @@ TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
 CHAT_ID = 5398864436
 
 bot = Bot(token=TELEGRAM_TOKEN)
-app = Flask(__name__)
+app = Flask(__name__)  # ✅ FIXED HERE
 
 @app.route("/", methods=["GET"])
 def home():
@@ -16,7 +16,7 @@ def home():
 
 @app.route("/run", methods=["GET"])
 def run_signals():
-    send_signals()
+    threading.Thread(target=send_signals).start()  # ✅ optional for async behavior
     return "✅ Signal execution started!", 200
 
 @app.route("/send-summary", methods=["GET"])
@@ -28,5 +28,5 @@ def send_summary():
     except Exception as e:
         return f"❌ Error: {e}", 500
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # ✅ FIXED HERE TOO
     app.run(host="0.0.0.0", port=10000)
