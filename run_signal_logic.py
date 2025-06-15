@@ -1,4 +1,5 @@
 from data_fetcher import get_data, get_data_15m
+from data_fetcher import get_active_usdt_symbols
 from get_top_symbols import get_top_volatile_symbols
 from telegram import Bot
 from ta.momentum import RSIIndicator
