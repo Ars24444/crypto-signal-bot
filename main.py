@@ -16,7 +16,7 @@ def home():
 
 @app.route("/run", methods=["GET"])
 def run_signals():
-    threading.Thread(target=send_signals).start()
+    send_signals()
     return "✅ Signal execution started!", 200
 
 @app.route("/send-summary", methods=["GET"])
