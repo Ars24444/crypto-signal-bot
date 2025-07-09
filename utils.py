@@ -183,7 +183,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if not is_safe_last_candle(df, signal_type=direction):
         print(f"⚠️ {symbol} rejected by last candle safety filter")
         return None
-atr = AverageTrueRange(high, low, close).average_true_range().iloc[-1]
+    atr = AverageTrueRange(high, low, close).average_true_range().iloc[-1]
     entry = last_close
     tp1 = entry + 1.2 * atr if direction == "LONG" else entry - 1.2 * atr
     tp2 = entry + 2.0 * atr if direction == "LONG" else entry - 2.0 * atr
