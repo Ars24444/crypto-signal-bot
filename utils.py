@@ -12,6 +12,7 @@ from get_top_symbols import get_top_volatile_symbols
 from safe_candle_checker import is_safe_last_candle
 from trade_volume_filter import has_sufficient_trades
 from data_fetcher import get_data
+from volume_filter import get_volume_strength
 
 def get_orderbook_strength(symbol, limit=5):
     try:
@@ -120,8 +121,17 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         print(f"⚠️ {symbol} RSI not in valid range: {last_rsi:.2f}")
         return None
+        
+    volume_info = get_volume_strength(symbol)
 
-    # ✅ Թույլ BTC ֆիլտր
+    if volume_info:
+        if direction == "LONG" and volume_info["ratio"] < 0.5:
+            print(f"❌ {symbol} rejected: weak buyer ratio ({volume_info['ratio']:.2f})")
+            return None
+        if direction == "SHORT" and volume_info["ratio"] > 0.5:
+            print(f"❌ {symbol} rejected: weak seller ratio ({1 - volume_info['ratio']:.2f})")
+            return None
+
     if not check_btc_influence(btc_change_pct, direction):
         return None
 
