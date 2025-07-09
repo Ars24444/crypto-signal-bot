@@ -98,9 +98,15 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         print(f"⛔️ {symbol} skipped: too low price ({last_close:.6f})")
         return None
 
-    if (high.iloc[-1] - low.iloc[-1]) / low.iloc[-1] * 100 < 0.5:
-        print(f"⛔️ {symbol} skipped: too small price range")
+    range_pct = (high.iloc[-1] - low.iloc[-1]) / low.iloc[-1] * 100
+
+    if range_pct < 0.2:
+        print(f"⛔️ {symbol} skipped: too small price range ({range_pct:.2f}%)")
         return None
+    elif range_pct < 0.5:
+        print(f"⚠️ {symbol} low range ({range_pct:.2f}%), score not added")
+    else:
+        score += 1  # good price range
 
     if abs(btc_change_pct) < 0.3 and current_volume < 0.05 * avg_volume:
         print(f"⚠️ {symbol} skipped: weak volume in calm market")
@@ -125,12 +131,33 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     volume_info = get_volume_strength(symbol)
 
     if volume_info:
-        if direction == "LONG" and volume_info["ratio"] < 0.5:
-            print(f"❌ {symbol} rejected: weak buyer ratio ({volume_info['ratio']:.2f})")
-            return None
-        if direction == "SHORT" and volume_info["ratio"] > 0.5:
-            print(f"❌ {symbol} rejected: weak seller ratio ({1 - volume_info['ratio']:.2f})")
-            return None
+        ratio = volume_info["ratio"]
+
+        if direction == "LONG":
+            if ratio < 0.35:
+                print(f"❌ {symbol} rejected: very weak buyers (ratio {ratio:.2f})")
+                return None
+            elif 0.35 <= ratio < 0.5:
+                print(f"⚠️ {symbol} weak buyer ratio ({ratio:.2f}), no score added")
+            elif 0.5 <= ratio < 0.6:
+                print(f"✅ {symbol} buyer ratio decent ({ratio:.2f}), score +1")
+                score += 1
+            elif ratio >= 0.6:
+                print(f"✅ {symbol} strong buyer ratio ({ratio:.2f}), score +2")
+                score += 2
+
+        elif direction == "SHORT":
+            if ratio > 0.65:
+                print(f"❌ {symbol} rejected: very weak sellers (ratio {1 - ratio:.2f})")
+                return None
+            elif 0.5 < ratio <= 0.65:
+                print(f"⚠️ {symbol} weak seller ratio ({1 - ratio:.2f}), no score added")
+            elif 0.4 < ratio <= 0.5:
+                print(f"✅ {symbol} seller ratio decent ({1 - ratio:.2f}), score +1")
+                score += 1
+            elif ratio <= 0.4:
+                print(f"✅ {symbol} strong seller ratio ({1 - ratio:.2f}), score +2")
+                score += 2
 
     if not check_btc_influence(btc_change_pct, direction):
         return None
