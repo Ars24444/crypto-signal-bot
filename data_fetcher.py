@@ -1,10 +1,14 @@
 import requests
 import pandas as pd
+import time
 from get_top_symbols import get_top_volatile_symbols
 
 def get_data(symbol, interval='1h', limit=100):
     url = 'https://api.binance.com/api/v3/klines'
     params = {"symbol": symbol, "interval": interval, "limit": limit}
+
+    time.sleep(0.3)
+    
     response = requests.get(url, params=params)
     if response.status_code != 200:
         return None
