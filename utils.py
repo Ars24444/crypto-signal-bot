@@ -72,7 +72,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if not has_sufficient_trades(symbol):
         print(f"⛔️ {symbol} skipped: insufficient trades")
         return None
-    
 
     close = df['close']
     open_ = df['open']
@@ -98,12 +97,12 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         print(f"⛔️ {symbol} skipped: too low price ({last_close:.6f})")
         return None
 
-    if high.iloc[-1] - low.iloc[-1] < last_close * 0.005:
+    if (high.iloc[-1] - low.iloc[-1]) / low.iloc[-1] * 100 < 0.5:
         print(f"⛔️ {symbol} skipped: too small price range")
         return None
 
-    if abs(btc_change_pct) < 0.3 and current_volume < 0.15 * avg_volume:
-        print(f"⚠️ {symbol} penalized - weak volume in calm market")
+    if abs(btc_change_pct) < 0.3 and current_volume < 0.05 * avg_volume:
+        print(f"⚠️ {symbol} skipped: weak volume in calm market")
         return None
 
     bullish_candles = last_close > last_open and prev_close > prev_open
@@ -119,8 +118,13 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         direction = "LONG"
         score += 1
     else:
+        print(f"⚠️ {symbol} RSI not in valid range: {last_rsi:.2f}")
         return None
-        
+
+    # ✅ Թույլ BTC ֆիլտր
+    if not check_btc_influence(btc_change_pct, direction):
+        return None
+
     orderbook_strength = get_orderbook_strength(symbol)
     if direction == "LONG" and orderbook_strength == "bearish":
         print(f"📉 {symbol} rejected due to strong sell wall (orderbook bearish)")
@@ -128,9 +132,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if direction == "SHORT" and orderbook_strength == "bullish":
         print(f"📈 {symbol} rejected due to strong buy wall (orderbook bullish)")
         return None  
-
-    if not check_btc_influence(signal_type=direction):
-        return None
 
     btc_penalty = 0
     if direction == "SHORT" and btc_change_pct > 2.5 and btc_rsi > 70:
@@ -149,11 +150,15 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         print(f"⚠️ {symbol} – MA trend not matched for {direction}")
         return None
 
-    score += 1  # Volume confirmed
+    if current_volume > 0.1 * avg_volume:
+        score += 1
+    else:
+        print(f"⚠️ {symbol} – weak volume, score not added")
 
     if (direction == "LONG" and bullish_candles) or (direction == "SHORT" and bearish_candles):
         score += 1
     else:
+        print(f"⚠️ {symbol} – candle structure weak")
         return None
 
     if (direction == "LONG" and btc_change_pct > 0.5) or (direction == "SHORT" and btc_change_pct < -0.5):
@@ -162,19 +167,23 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     score -= btc_penalty
 
     if direction == "LONG" and last_rsi >= 70:
+        print(f"⚠️ {symbol} LONG rejected: RSI too high ({last_rsi:.2f})")
         return None
     if direction == "SHORT" and last_rsi <= 30:
+        print(f"⚠️ {symbol} SHORT rejected: RSI too low ({last_rsi:.2f})")
         return None
 
     if direction == "LONG" and last_close < last_open:
+        print(f"⚠️ {symbol} LONG rejected: last candle is red")
         return None
     if direction == "SHORT" and last_close > last_open:
+        print(f"⚠️ {symbol} SHORT rejected: last candle is green")
         return None
 
     if not is_safe_last_candle(df, signal_type=direction):
+        print(f"⚠️ {symbol} rejected by last candle safety filter")
         return None
-
-    atr = AverageTrueRange(high, low, close).average_true_range().iloc[-1]
+atr = AverageTrueRange(high, low, close).average_true_range().iloc[-1]
     entry = last_close
     tp1 = entry + 1.2 * atr if direction == "LONG" else entry - 1.2 * atr
     tp2 = entry + 2.0 * atr if direction == "LONG" else entry - 2.0 * atr
@@ -182,9 +191,8 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
 
     if score < 4:
         print(f"🔎 Debug: {symbol} rejected — score too low ({score})")
+        print(f"🔍 {symbol} | DIR: {direction} | Score: {score}/5 | RSI: {last_rsi:.2f} | MA10: {last_ma10:.4f} / MA30: {last_ma30:.4f} | Vol: {current_volume:.2f} | BTC: {btc_change_pct:.2f}%")
         return None
-
-    print(f"🔍 {symbol} | DIR: {direction} | Score: {score}/5 | RSI: {last_rsi:.2f} | MA10: {last_ma10:.4f} / MA30: {last_ma30:.4f} | Vol: {current_volume:.2f} | BTC: {btc_change_pct:.2f}%")
 
     return {
         "type": direction,
