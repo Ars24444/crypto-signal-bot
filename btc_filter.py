@@ -1,6 +1,6 @@
 from data_fetcher import get_data
 
-def check_btc_influence(signal_type="LONG"):
+def check_btc_influence(btc_change_pct, signal_type="LONG"):
     """
     Checks whether the current BTC market trend supports the given signal direction.
     Returns True if market is neutral or supportive; False if trend contradicts the signal.
