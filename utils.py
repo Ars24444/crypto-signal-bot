@@ -94,6 +94,9 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     avg_volume = volume[-20:-5].mean()
     current_volume = volume.iloc[-1]
 
+    direction = None
+    score = 0
+
     if last_close < 0.0001:
         print(f"⛔️ {symbol} skipped: too low price ({last_close:.6f})")
         return None
@@ -115,8 +118,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     bullish_candles = last_close > last_open and prev_close > prev_open
     bearish_candles = last_close < last_open and prev_close < prev_open
 
-    direction = None
-    score = 0
 
     if last_rsi < 40:
         direction = "SHORT"
