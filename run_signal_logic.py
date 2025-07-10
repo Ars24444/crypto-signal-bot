@@ -92,6 +92,18 @@ def send_signals(force=False):
             sl=sl,
             signal_time_ms=signal_time_ms
         )
+        
+        log_sent_signal(
+            symbol=symbol,
+            data={
+                "type": signal,
+                "entry": entry,
+                "tp1": tp1,
+                "tp2": tp2,
+                "sl": sl
+            },
+            result=result_check
+        )
 
         print("\n📊 Signal Analysis Breakdown:", flush=True)
         print(f"🔹 Symbol: {symbol}", flush=True)
