@@ -2,7 +2,8 @@ from flask import Flask
 import threading
 from telegram import Bot
 from generate_summary import generate_summary
-from run_signal_logic import send_signals  
+from run_signal_logic import send_signals
+from signal_logger import send_winrate_to_telegram
 
 TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
 CHAT_ID = 5398864436
@@ -28,5 +29,13 @@ def send_summary():
     except Exception as e:
         return f"❌ Error: {e}", 500
 
+@app.route("/winrate", methods=["GET"])
+def winrate():
+    try:
+        threading.Thread(target=send_winrate_to_telegram).start()
+        return "✅ Winrate sent!", 200
+    except Exception as e:
+        return f"❌ Error: {e}", 500
+        
 if __name__ == "__main__":  # ✅ FIXED HERE TOO
     app.run(host="0.0.0.0", port=10000)
