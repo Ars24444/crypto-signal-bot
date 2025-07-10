@@ -88,7 +88,17 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     last_ma10 = SMAIndicator(close, window=10).sma_indicator().iloc[-1]
     last_ma30 = SMAIndicator(close, window=30).sma_indicator().iloc[-1]
 
-    if np.isnan(last_ma10) or np.isnan(last_ma30) or last_ma10 == 0 or last_ma30 == 0:
+    # ✅ Price too low protection
+    if last_close < 0.0001 or high.iloc[-1] < 0.0001 or low.iloc[-1] < 0.0001:
+        print(f"⛔️ {symbol} rejected: price too small (< 0.0001)")
+        return None
+
+    # ✅ Invalid MA values
+    if np.isnan(last_ma10) or np.isnan(last_ma30) or last_ma10 <= 0 or last_ma30 <= 0:
+        print(f"⛔️ {symbol} rejected: invalid MA values")
+        return None
+    if round(last_ma10, 5) == round(last_ma30, 5):
+        print(f"⛔️ {symbol} rejected: MA10 and MA30 are equal ({last_ma10})")
         return None
 
     avg_volume = volume[-20:-5].mean()
@@ -97,19 +107,14 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     direction = None
     score = 0
 
-    if last_close < 0.0001:
-        print(f"⛔️ {symbol} skipped: too low price ({last_close:.6f})")
-        return None
-
     range_pct = (high.iloc[-1] - low.iloc[-1]) / low.iloc[-1] * 100
-
     if range_pct < 0.2:
         print(f"⛔️ {symbol} skipped: too small price range ({range_pct:.2f}%)")
         return None
     elif range_pct < 0.5:
         print(f"⚠️ {symbol} low range ({range_pct:.2f}%), score not added")
     else:
-        score += 1  # good price range
+        score += 1
 
     if abs(btc_change_pct) < 0.3 and current_volume < 0.05 * avg_volume:
         print(f"⚠️ {symbol} skipped: weak volume in calm market")
@@ -117,7 +122,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
 
     bullish_candles = last_close > last_open and prev_close > prev_open
     bearish_candles = last_close < last_open and prev_close < prev_open
-
 
     if last_rsi < 40:
         direction = "SHORT"
@@ -128,12 +132,10 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     else:
         print(f"⚠️ {symbol} RSI not in valid range: {last_rsi:.2f}")
         return None
-        
-    volume_info = get_volume_strength(symbol)
 
+    volume_info = get_volume_strength(symbol)
     if volume_info:
         ratio = volume_info["ratio"]
-
         if direction == "LONG":
             if ratio < 0.35:
                 print(f"❌ {symbol} rejected: very weak buyers (ratio {ratio:.2f})")
@@ -146,7 +148,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
             elif ratio >= 0.6:
                 print(f"✅ {symbol} strong buyer ratio ({ratio:.2f}), score +2")
                 score += 2
-
         elif direction == "SHORT":
             if ratio > 0.65:
                 print(f"❌ {symbol} rejected: very weak sellers (ratio {1 - ratio:.2f})")
@@ -169,7 +170,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
         return None
     if direction == "SHORT" and orderbook_strength == "bullish":
         print(f"📈 {symbol} rejected due to strong buy wall (orderbook bullish)")
-        return None  
+        return None
 
     btc_penalty = 0
     if direction == "SHORT" and btc_change_pct > 2.5 and btc_rsi > 70:
@@ -178,7 +179,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     elif direction == "LONG" and btc_change_pct < -2.5 and btc_rsi < 30:
         btc_penalty = 1
         print(f"⚠️ {symbol} LONG penalized due to strong BTC downtrend")
-
     if direction == "SHORT" and btc_change_pct < -2.0:
         score += 1
 
@@ -210,7 +210,6 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if direction == "SHORT" and last_rsi <= 30:
         print(f"⚠️ {symbol} SHORT rejected: RSI too low ({last_rsi:.2f})")
         return None
-
     if direction == "LONG" and last_close < last_open:
         print(f"⚠️ {symbol} LONG rejected: last candle is red")
         return None
@@ -221,11 +220,18 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=0, symbol=""):
     if not is_safe_last_candle(df, signal_type=direction):
         print(f"⚠️ {symbol} rejected by last candle safety filter")
         return None
+
+    # ✅ ATR-based TP/SL
     atr = AverageTrueRange(high, low, close).average_true_range().iloc[-1]
     entry = last_close
     tp1 = entry + 1.2 * atr if direction == "LONG" else entry - 1.2 * atr
     tp2 = entry + 2.0 * atr if direction == "LONG" else entry - 2.0 * atr
     sl = entry - 1.0 * atr if direction == "LONG" else entry + 1.0 * atr
+
+    # ✅ Reject if TP or SL are unrealistically close
+    if abs(tp1 - tp2) < 0.0001 or abs(entry - tp1) < 0.0001 or abs(entry - sl) < 0.0001:
+        print(f"⛔️ {symbol} rejected: TP or SL too close to entry")
+        return None
 
     if score < 4:
         print(f"🔎 Debug: {symbol} rejected — score too low ({score})")
