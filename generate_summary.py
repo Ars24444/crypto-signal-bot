@@ -2,7 +2,7 @@ import json
 import time
 from datetime import datetime
 
-def generate_summary(filepath="signal_results.json"):
+def generate_summary(filepath="sent_signals_log.json"):
     try:
         with open(filepath, "r") as f:
             data = json.load(f)
@@ -34,9 +34,7 @@ def generate_summary(filepath="signal_results.json"):
     winrate = ((tp1 + tp2) / total) * 100
 
     return (
-        f"📊 Signal Summary (Last 3h)\n"
-        f"✅ TP1 hit: {tp1}\n"
-        f"💥 TP2 hit: {tp2}\n"
-        f"🛑 SL hit: {sl}\n"
-        f"🎯 Winrate: {winrate:.1f}%"
+        f"📊 Last {total} Signals Performance\n"
+        f"✅ TP1: {tp1} | 🏁 TP2: {tp2} | ❌ SL: {sl} | 🤷‍♂️ No Hit: {total - tp1 - tp2 - sl}\n"
+        f"🏆 Win Rate: {winrate:.2f}%"
     )
