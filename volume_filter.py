@@ -1,4 +1,3 @@
-# volume_filter.py
 from ta.trend import SMAIndicator
 from ta.volatility import AverageTrueRange
 import pandas as pd
