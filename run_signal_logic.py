@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 from telegram import Bot
 from btc_filter import check_btc_influence_df
-from volume_filter as vf
+import volume_filter as vf
 from safe_candle_checker import safe_candle_ok
 from orderbook_filter import orderbook_filter
 from ta.momentum import RSIIndicator
