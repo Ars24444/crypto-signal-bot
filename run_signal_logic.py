@@ -3,6 +3,10 @@ from datetime import datetime
 
 import pandas as pd
 from telegram import Bot
+from btc_filter import check_btc_influence_df
+from volume_filter import volume_filter
+from safe_candle_checker import safe_candle_ok
+from orderbook_filter import orderbook_filter
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
 from ta.trend import EMAIndicator, SMAIndicator
@@ -16,6 +20,7 @@ from blacklist_manager import is_blacklisted, get_blacklist_reason
 # ----------------------- Config -----------------------
 TELEGRAM_TOKEN = "AAGK_mRt_ADxZg3rbD82DAFQCb5X9AL0Wv8"
 CHAT_ID = "5398864436"
+bot = Bot (token=TELEGRAM_TOKEN)
 
 
 MAX_SIGNALS = 8
@@ -208,6 +213,35 @@ def send_signals(force: bool = False):
         rsi = result["rsi"]
         ma10 = result["ma10"]
         ma30 = result["ma30"]
+        # --- BTC filter ---
+        allow, btc_reason, btc_bonus = check_btc_influence_df(btc_df, signal)
+        if not allow:
+            print(f"❌ {symbol} rejected by BTC: {btc_reason}", flush=True)
+            continue
+        score = min(5, score + btc_bonus)
+        print(f"✅ BTC ok: {btc_reason} (+{btc_bonus})", flush=True)
+
+        # --- Volume filter ---
+        v_ok, v_reason, v_bonus = volume_filter(df)
+        if not v_ok:
+            print(f"❌ {symbol} rejected by volume: {v_reason}", flush=True)
+            continue
+        score = min(5, score + v_bonus)
+        print(f"✅ volume ok: {v_reason} (+{v_bonus})", flush=True)
+
+        # --- Candle safety ---
+        c_ok, c_reason = safe_candle_ok(df, signal)
+        if not c_ok:
+            print(f"❌ {symbol} rejected by candle: {c_reason}", flush=True)
+            continue
+        print(f"✅ candle ok: {c_reason}", flush=True)
+
+        # --- Orderbook dominance ---
+        ob_ok, ob_reason = orderbook_filter(symbol, signal)
+        if not ob_ok:
+            print(f"❌ {symbol} rejected by orderbook: {ob_reason}", flush=True)
+            continue
+        print(f"✅ orderbook ok: {ob_reason}", flush=True)
 
         # extra guardrail
         if score < MIN_SCORE:
