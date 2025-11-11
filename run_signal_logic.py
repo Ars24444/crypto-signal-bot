@@ -238,8 +238,7 @@ def send_signals(force: bool = False):
         print(f"🔹 Symbol: {symbol}", flush=True)
         print(f"🔹 Type: {signal}", flush=True)
         print(f"🔹 RSI: {rsi:.2f}", flush=True)
-        print(f"🔹 MA Trend: EMA10({ma10:.4f}) > EMA30({ma30:.
-        4f}) = {ma10 > ma30}", flush=True)
+        print(f"🔹 MA Trend: EMA10({ma10:.4f}) > EMA30({ma30:.4f}) = {ma10 > ma30}", flush=True)
         vol_avg = df['volume'][-20:-5].mean() if 'volume' in df and len(df) >= 25 else 0
         print(f"🔹 Volume Spike: {df['volume'].iloc[-1]} > avg={vol_avg} -> {df['volume'].iloc[-1] > vol_avg if vol_avg else False}", flush=True)
         candle_type = "Bullish" if signal == "LONG" and df['close'].iloc[-1] > df['open'].iloc[-1] else "Bearish" if signal == "SHORT" and df['close'].iloc[-1] < df['open'].iloc[-1] else "Weak"
