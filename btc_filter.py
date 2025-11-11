@@ -1,38 +1,51 @@
-from data_fetcher import get_data
+from ta.momentum import RSIIndicator
+from ta.trend import EMAIndicator
 
-def check_btc_influence(btc_change_pct, signal_type="LONG"):
+def check_btc_influence_df(btc_df, side: str):
     """
-    Checks whether the current BTC market trend supports the given signal direction.
-    Returns True if market is neutral or supportive; False if trend contradicts the signal.
+    side: 'LONG' or 'SHORT'
+    Returns (allow: bool, reason: str, bonus: int)
+      - allow=False → block the signal
+      - bonus ∈ {0,1} → add 1 extra point to score if BTC strongly supports the signal
     """
     try:
-        btc_df = get_data("BTCUSDT", interval="15m", limit=10)
-        if btc_df is None or len(btc_df) < 10:
-            print("⚠️ BTC data unavailable for filter.")
-            return True  # Allow signal if BTC data is missing
+        if btc_df is None or len(btc_df) < 20:
+            return True, "BTC data missing – allow", 0
 
-        start_price = btc_df["open"].iloc[0]
-        end_price = btc_df["close"].iloc[-1]
-        btc_change_pct = (end_price - start_price) / start_price * 100
+        closes = btc_df["close"].astype(float)
+        rsi = float(RSIIndicator(closes, window=14).rsi().iloc[-1])
+        ema10 = float(EMAIndicator(closes, window=10).ema_indicator().iloc[-1])
+        ema30 = float(EMAIndicator(closes, window=30).ema_indicator().iloc[-1])
 
-        print(f"📉 BTC 2.5h Change: {btc_change_pct:.2f}%")
+        # last ~2 hours (8 × 15m candles)
+        win = 8 if len(closes) >= 9 else len(closes) - 1
+        change_pct = (closes.iloc[-1] - closes.iloc[-1 - win]) / closes.iloc[-1 - win] * 100.0
 
-        # ✅ Allow signal if BTC is calm
-        if abs(btc_change_pct) < 0.6:
-            return True
+        # 1) Calm zone → allow
+        if abs(change_pct) < 0.4:
+            return True, f"BTC calm ({change_pct:.2f}%)", 0
 
-        # ❌ Block SHORT if BTC is going UP strongly
-        if btc_change_pct >= 0.6 and signal_type == "SHORT":
-            print("❌ Rejected due to BTC uptrend conflicting with SHORT signal.")
-            return False
+        # 2) Shock guard → block if last candle moves >1.2%
+        last_ret = (closes.iloc[-1] / closes.iloc[-2] - 1.0) * 100.0
+        if abs(last_ret) > 1.2:
+            return False, f"BTC shock move {last_ret:.2f}%", 0
 
-        # ❌ Block LONG if BTC is going DOWN strongly
-        if btc_change_pct <= -0.6 and signal_type == "LONG":
-            print("❌ Rejected due to BTC downtrend conflicting with LONG signal.")
-            return False
+        # 3) Directional guardrails (RSI + trend + direction)
+        if side == "LONG":
+            if change_pct <= -0.6 or rsi >= 70 or ema10 < ema30:
+                return False, f"Block LONG: Δ{change_pct:.2f}% | RSI {rsi:.1f} | EMA10<EMA30={ema10<ema30}", 0
+        else:  # SHORT
+            if change_pct >= 0.6 or rsi <= 30 or ema10 > ema30:
+                return False, f"Block SHORT: Δ{change_pct:.2f}% | RSI {rsi:.1f} | EMA10>EMA30={ema10>ema30}", 0
 
-        return True
+        # 4) Alignment bonus (add +1 if BTC trend strongly matches)
+        bonus = 0
+        if side == "LONG" and change_pct > 0 and ema10 > ema30 and 40 <= rsi <= 65:
+            bonus = 1
+        if side == "SHORT" and change_pct < 0 and ema10 < ema30 and 35 <= rsi <= 60:
+            bonus = 1
+
+        return True, f"BTC align Δ{change_pct:.2f}% | RSI {rsi:.1f}", bonus
 
     except Exception as e:
-        print("❌ BTC influence filter error:", e)
-        return True  # Fail-safe: allow signal
+        return True, f"BTC filter error: {e}", 0
