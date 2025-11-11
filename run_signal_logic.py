@@ -14,7 +14,7 @@ from check_trade_result import check_trade_result
 from blacklist_manager import is_blacklisted, add_to_blacklist, get_blacklist_reason
 from utils import is_strong_signal
 
-TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
+TELEGRAM_TOKEN = "7842956033:AAGK_mRt_ADxZg3rbD82DAFQCb5X9AL0Wv8"
 CHAT_ID = 5398864436
 bot = Bot(token=TELEGRAM_TOKEN)
 
