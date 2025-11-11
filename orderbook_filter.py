@@ -1,34 +1,72 @@
 import requests
 
-def is_orderbook_safe(symbol, min_depth_usdt=10000, max_spread_pct=1.2, min_spread_pct=0.01):
+def get_volume_strength(symbol: str):
+    """
+    Returns:
+      {
+        "buy_volume": float,   # notional (qty * price)
+        "sell_volume": float,
+        "ratio": float         # buy_notional / (buy_notional + sell_notional)
+      }
+      or None on failure.
+    """
     try:
-        url = f"https://api.binance.com/api/v3/depth"
-        params = {"symbol": symbol, "limit": 20}
-        response = requests.get(url, params=params, timeout=5)
-        data = response.json()
+        url = "https://fapi.binance.com/fapi/v1/aggTrades"
+        params = {"symbol": symbol, "limit": 1000}
+        headers = {"User-Agent": "signal-bot/1.0"}
+        resp = requests.get(url, params=params, headers=headers, timeout=10)
 
-        bids = data.get("bids", [])
-        asks = data.get("asks", [])
-        if not bids or not asks:
-            return False
+        if resp.status_code != 200:
+            print(f"⚠️ aggTrades HTTP {resp.status_code}: {resp.text[:200]}")
+            return None
 
-        best_bid = float(bids[0][0])
-        best_ask = float(asks[0][0])
-        spread_pct = (best_ask - best_bid) / best_bid * 100
+        data = resp.json()
+        if not isinstance(data, list):
+            print(f"⚠️ Unexpected aggTrades payload: {data}")
+            return None
 
-        if spread_pct < min_spread_pct or spread_pct > max_spread_pct:
-            return False
+        buy_notional = 0.0
+        sell_notional = 0.0
+        for t in data:
+            qty = float(t.get("q", 0.0))
+            price = float(t.get("p", 0.0))
+            if qty <= 0 or price <= 0:
+                continue
+            notional = qty * price
+            # m == True → buyer is maker → taker is seller → sell pressure
+            if t.get("m", False):
+                sell_notional += notional
+            else:
+                buy_notional += notional
 
-        def total_depth(order_list):
-            return sum(float(price) * float(qty) for price, qty in order_list[:10])
+        total = buy_notional + sell_notional
+        if total <= 0:
+            return None
 
-        bid_depth = total_depth(bids)
-        ask_depth = total_depth(asks)
-
-        if bid_depth < min_depth_usdt or ask_depth < min_depth_usdt:
-            return False
-
-        return True
+        ratio = buy_notional / total
+        return {
+            "buy_volume": round(buy_notional, 2),
+            "sell_volume": round(sell_notional, 2),
+            "ratio": round(ratio, 3),
+        }
     except Exception as e:
-        print(f"⚠️ Orderbook check failed for {symbol}: {e}")
-        return False
+        print(f"❌ Error in get_volume_strength: {e}")
+        return None
+
+
+def orderbook_filter(symbol: str, side: str):
+    """
+    Returns (ok: bool, reason: str)
+    Blocks LONG if buyers are not dominant; blocks SHORT if sellers are not dominant.
+    """
+    vs = get_volume_strength(symbol)
+    if vs is None:
+        return True, "orderflow unavailable"
+
+    ratio = vs["ratio"]
+    if side == "LONG" and ratio < 0.53:
+        return False, f"buyers not dominant (ratio={ratio})"
+    if side == "SHORT" and ratio > 0.47:
+        return False, f"sellers not dominant (ratio={ratio})"
+
+    return True, f"orderbook ok (buy={vs['buy_volume']}, sell={vs['sell_volume']}, ratio={ratio})"
