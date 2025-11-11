@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 from telegram import Bot
 from btc_filter import check_btc_influence_df
-from volume_filter import volume_filter
+from volume_filter as vf
 from safe_candle_checker import safe_candle_ok
 from orderbook_filter import orderbook_filter
 from ta.momentum import RSIIndicator
@@ -19,7 +19,7 @@ from blacklist_manager import is_blacklisted, get_blacklist_reason
 
 # ----------------------- Config -----------------------
 TELEGRAM_TOKEN = "AAGK_mRt_ADxZg3rbD82DAFQCb5X9AL0Wv8"
-CHAT_ID = "5398864436"
+CHAT_ID = 5398864436
 bot = Bot (token=TELEGRAM_TOKEN)
 
 
