@@ -222,7 +222,7 @@ def send_signals(force: bool = False):
         print(f"✅ BTC ok: {btc_reason} (+{btc_bonus})", flush=True)
 
         # --- Volume filter ---
-        v_ok, v_reason, v_bonus = volume_filter(df)
+        v_ok, v_reason, v_bonus = vf.volume_filter(df)
         if not v_ok:
             print(f"❌ {symbol} rejected by volume: {v_reason}", flush=True)
             continue
