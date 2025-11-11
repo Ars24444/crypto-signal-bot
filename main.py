@@ -5,7 +5,7 @@ from generate_summary import generate_summary
 from run_signal_logic import send_signals
 from signal_logger import send_winrate_to_telegram
 
-TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
+TELEGRAM_TOKEN = "7842956033:AAGK_mRt_ADxZg3rbD82DAFQCb5X9AL0Wv8"
 CHAT_ID = 5398864436
 
 bot = Bot(token=TELEGRAM_TOKEN)
