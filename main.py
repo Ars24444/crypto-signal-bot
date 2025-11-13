@@ -7,7 +7,7 @@ from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
 
 from data_fetcher import get_data, get_data_15m, get_active_usdt_symbols
-from run_signals_logic import process_symbol_signal
+from run_signal_logic import process_symbol_signal
 from signal_logger import log_sent_signal
 from save_signal_result import save_signal_result
 from blacklist_manager import is_blacklisted
