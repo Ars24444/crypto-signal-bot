@@ -2,7 +2,6 @@ from flask import Flask
 import threading
 from telegram import Bot
 from generate_summary import generate_summary
-from run_signal_logic import send_signals
 from signal_logger import send_winrate_to_telegram
 
 TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
