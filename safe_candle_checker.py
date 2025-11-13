@@ -1,4 +1,5 @@
-def safe_candle_ok(df, signal_type="LONG"):
+def is_safe_last_candle(df, signal_type="LONG"):
+        
     if df is None or len(df) < 20:
         return False
 
