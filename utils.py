@@ -1,119 +1,41 @@
-from ta.momentum import RSIIndicator
-from ta.trend import EMAIndicator
+from flask import Flask
+import threading
+from telegram import Bot
+from generate_summary import generate_summary
+from run_signal_logic import send_signals
+from signal_logger import send_winrate_to_telegram
 
-def safe_candle(df):
-    """
-    Վերջին մոմի անվտանգության ստուգում
-    """
-    last = df.iloc[-1]
-    body = abs(last["close"] - last["open"])
-    candle_size = last["high"] - last["low"]
+TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
+CHAT_ID = 5398864436
 
-    if candle_size == 0:
-        return False
+bot = Bot(token=TELEGRAM_TOKEN)
+app = Flask(name)  # ✅ FIXED HERE
 
-    body_ratio = body / candle_size
+@app.route("/", methods=["GET"])
+def home():
+    return "🟢 Flask is working!", 200
 
-    # Avoid long wicks & micro candles
-    return body_ratio >= 0.35
+@app.route("/run", methods=["GET"])
+def run_signals():
+    threading.Thread(target=send_signals).start()  # ✅ optional for async behavior
+    return "✅ Signal execution started!", 200
 
+@app.route("/send-summary", methods=["GET"])
+def send_summary():
+    try:
+        message = generate_summary()
+        bot.send_message(chat_id=CHAT_ID, text=message)
+        return "📤 Summary sent", 200
+    except Exception as e:
+        return f"❌ Error: {e}", 500
 
-def btc_filter_pass(force=False):
-    """
-    BTC filter — RSI + %change
-    force=True → skip
-    """
-    from data_fetcher import get_data_15m
-
-    if force:
-        return True, "forced"
-
-    df = get_data_15m("BTCUSDT")
-
-    if df is None or len(df) < 50:
-        return False, "btc_data_error"
-
-    close = df["close"]
-
-    rsi = RSIIndicator(close, window=14).rsi().iloc[-1]
-    change = (close.iloc[-1] - close.iloc[-2]) / close.iloc[-2] * 100
-
-    if rsi > 75:
-        return False, "rsi_high"
-
-    if rsi < 25:
-        return False, "rsi_low"
-
-    if abs(change) > 3:
-        return False, "btc_volatile"
-
-    return True, "ok"
-
-
-def is_strong_signal(df):
-    """
-    11.11-ի սիգնալների scoring logic:
-    - EMA10/EMA30 trend
-    - RSI
-    - Price momentum
-    - Candle shape
-    """
-
-    if df is None or len(df) < 70:
-        return None, 0
-
-    close = df["close"]
-    open_ = df["open"]
-    high = df["high"]
-    low = df["low"]
-
-    # Indicators
-    ema10 = EMAIndicator(close, window=10).ema_indicator().iloc[-1]
-    ema30 = EMAIndicator(close, window=30).ema_indicator().iloc[-1]
-    rsi = RSIIndicator(close, window=14).rsi().iloc[-1]
-
-    last_close = close.iloc[-1]
-    prev_close = close.iloc[-2]
-
-    score = 0
-    signal_type = None
-
-    #=============== LONG ===============
-    if last_close > ema10 and ema10 > ema30:
-        score += 1  # trend
-
-        if rsi < 68:
-            score += 1
-
-        if last_close > prev_close:
-            score += 1  # momentum
-
-        if safe_candle(df):
-            score += 1
-
-        if score >= 3:
-            signal_type = "LONG"
-
-    #=============== SHORT ===============
-    short_score = 0
-
-    if last_close < ema10 and ema10 < ema30:
-        short_score += 1
-
-        if rsi > 32:
-            short_score += 1
-
-        if last_close < prev_close:
-            short_score += 1
-
-        if safe_candle(df):
-            short_score += 1
-
-        if short_score >= 3:
-            signal_type = "SHORT"
-            score = short_score
-
-    if signal_type is None:
-        return None, 0
-
-    return signal_type, score
+@app.route("/winrate", methods=["GET"])
+def winrate():
+    try:
+        threading.Thread(target=send_winrate_to_telegram).start()
+        return "✅ Winrate sent!", 200
+    except Exception as e:
+        return f"❌ Error: {e}", 500
+        
+if name == "main":  # ✅ FIXED HERE TOO
+    app.run(host="0.0.0.0", port=10000)
