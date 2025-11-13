@@ -1,39 +1,40 @@
-from ta.trend import SMAIndicator
-from ta.volatility import AverageTrueRange
-import pandas as pd
+import requests
 
-def volume_filter(df: pd.DataFrame):
-    """
-    Returns (ok: bool, reason: str, bonus: int)
-    """
+def get_volume_strength(symbol):
     try:
-        if df is None or len(df) < 50:
-            return False, "insufficient data", 0
+        url = f"https://fapi.binance.com/fapi/v1/aggTrades"
+        params = {
+            "symbol": symbol,
+            "limit": 1000
+        }
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
 
-        v = df["volume"].astype(float)
-        c = df["close"].astype(float)
-        h = df["high"].astype(float)
-        l = df["low"].astype(float)
+        if not isinstance(data, list):
+            print(f"⚠️ Unexpected response for volume: {data}")
+            return None
 
-        vol_sma20 = SMAIndicator(v, window=20).sma_indicator().iloc[-1]
-        recent3_vol = v.iloc[-3:].mean()
-        if vol_sma20 <= 0:
-            return False, "vol_sma20 <= 0", 0
+        buy_volume = 0
+        sell_volume = 0
 
-        ratio = recent3_vol / vol_sma20
-        atr14 = AverageTrueRange(h, l, c, window=14).average_true_range().iloc[-1]
-        last_range = float(h.iloc[-1] - l.iloc[-1])
+        for trade in data:
+            qty = float(trade['q'])
+            if trade['m']:
+                sell_volume += qty
+            else:
+                buy_volume += qty
 
-        vol_ok = ratio >= 1.25
-        expansion_ok = last_range >= 0.8 * atr14
+        total_volume = buy_volume + sell_volume
+        if total_volume == 0:
+            return None
 
-        if not vol_ok:
-            return False, f"volume weak (ratio={ratio:.2f})", 0
-        if not expansion_ok:
-            return False, f"range too small vs ATR ({last_range:.6f} < {0.8*atr14:.6f})", 0
-
-        bonus = 1 if ratio >= 1.6 and last_range >= 1.0 * atr14 else 0
-        return True, f"volume ok (ratio={ratio:.2f})", bonus
+        ratio = buy_volume / total_volume
+        return {
+            "buy_volume": round(buy_volume, 2),
+            "sell_volume": round(sell_volume, 2),
+            "ratio": round(ratio, 2)  # >0.5 means buyers dominate
+        }
 
     except Exception as e:
-        return False, f"volume filter error: {e}", 0
+        print(f"❌ Error in get_volume_strength: {e}")
+        return None
