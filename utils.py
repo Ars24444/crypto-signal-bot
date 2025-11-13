@@ -8,7 +8,7 @@ TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
 CHAT_ID = 5398864436
 
 bot = Bot(token=TELEGRAM_TOKEN)
-app = Flask(name)  # ✅ FIXED HERE
+app = Flask(__name__)  # ✅ FIXED HERE
 
 @app.route("/", methods=["GET"])
 def home():
