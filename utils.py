@@ -35,6 +35,20 @@ def winrate():
         return "✅ Winrate sent!", 200
     except Exception as e:
         return f"❌ Error: {e}", 500
+ def is_strong_signal(rsi, ma10, ma30, volume_spike, safe_candle):
+    """
+    Returns True եթե սիգնալը ուժեղ է, այլ դեպքում False.
+    """
+    try:
+        return (
+            rsi >= 60 and
+            ma10 > ma30 and
+            volume_spike and
+            safe_candle
+        )
+    except Exception as e:
+        print(f"❌ is_strong_signal error: {e}")
+        return False       
         
 if __name__ == "__main__":  # ✅ FIXED HERE TOO
     app.run(host="0.0.0.0", port=10000)
