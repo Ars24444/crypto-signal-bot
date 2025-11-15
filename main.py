@@ -2,15 +2,15 @@ from flask import Flask
 import threading
 from telegram import Bot
 
-from run_signal_logic import send_signals
+from run_signal_logic import send_signals   # 👈 ԱՅՍՏԵՂ ԴՐԱԾ ՉԷՐ
 from generate_summary import generate_summary
 from signal_logger import send_winrate_to_telegram
 
-TELEGRAM_TOKEN = "7842956033:AAGK_mRt_ADxZg3rbD82DAFQCb5X9AL0Wv8"
-CHAT_ID = 5398864436                      
+TELEGRAM_TOKEN = "7842956033:AAFCHreV97rJH11mhNQUhY3thpA_LpS5tLs"
+CHAT_ID = 5398864436
 
 bot = Bot(token=TELEGRAM_TOKEN)
-app = Flask(__name__)  # ✅ OK
+app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
 def home():
@@ -18,8 +18,7 @@ def home():
 
 @app.route("/run", methods=["GET"])
 def run_signals_route():
-    # ⬆️ անունը փոխեցի, որ չբացատվի send_signals ֆունկցիայի հետ
-    threading.Thread(target=send_signals).start()  # ✅ async
+    threading.Thread(target=send_signals).start()
     return "✅ Signal execution started!", 200
 
 @app.route("/send-summary", methods=["GET"])
@@ -39,5 +38,5 @@ def winrate():
     except Exception as e:
         return f"❌ Error: {e}", 500
 
-if __name__ == "__main__":  # ✅ OK
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
