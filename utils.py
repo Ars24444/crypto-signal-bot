@@ -4,7 +4,8 @@ import time
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 
-# Get historical kline data from Binance
+
+# ------------ Historical kline data ------------
 def get_data(symbol, interval='1h', limit=100):
     url = "https://api.binance.com/api/v3/klines"
     params = {
@@ -23,7 +24,8 @@ def get_data(symbol, interval='1h', limit=100):
     df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
     return df
 
-# Get only active USDT trading pairs from Binance
+
+# ------------ Active USDT symbols ------------
 def get_active_usdt_symbols():
     url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(url)
@@ -35,8 +37,13 @@ def get_active_usdt_symbols():
             symbols.append(s["symbol"])
     return symbols
 
-# Check if there are at least N long and N short trades in last 15min from Binance Futures
+
+# ------------ Futures trade activity filter ------------
 def has_minimum_long_short_trades(symbol, min_each=50):
+    """
+    Վերադարձնում է True, եթե վերջին 15 րոպեում կա
+    առնվազն min_each long և min_each short գործարք:
+    """
     url = "https://fapi.binance.com/fapi/v1/aggTrades"
     end_time = int(time.time() * 1000)
     start_time = end_time - (15 * 60 * 1000)
@@ -46,12 +53,13 @@ def has_minimum_long_short_trades(symbol, min_each=50):
         "startTime": start_time,
         "endTime": end_time,
         "limit": 1000
-       }
+    }
 
     try:
         response = requests.get(url, params=params)
         trades = response.json()
 
+        # Binance երբեմն dict է վերադարձնում error-ով
         if not isinstance(trades, list):
             print(f"{symbol} skipped: unexpected response (not a list): {trades}")
             return False
@@ -60,7 +68,7 @@ def has_minimum_long_short_trades(symbol, min_each=50):
         short_count = 0
 
         for trade in trades:
-            if trade['m']:
+            if trade["m"]:
                 short_count += 1
             else:
                 long_count += 1
@@ -71,25 +79,41 @@ def has_minimum_long_short_trades(symbol, min_each=50):
         print(f"Error fetching trade data for {symbol}: {e}")
         return False
 
-# Main signal detection function
+
+# ------------ Main signal strength function ------------
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
+    """
+    Վերադարձնում է dict, եթե սիգնալը ուժեղ է, հակառակ դեպքում None.
+
+    Վերադարձվող dict.
+    {
+        "type": "LONG" կամ "SHORT",
+        "rsi": float,
+        "ma10": float,
+        "ma30": float,
+        "entry": float,   # ընթացիկ close
+        "score": int
+    }
+    """
     if df is None or len(df) < 30:
         return None
 
+    # Real trade activity filter (futures)
     if symbol and not has_minimum_long_short_trades(symbol):
         print(f"{symbol} skipped due to low real trade activity")
         return None
 
-    close = df['close']
-    volume = df['volume']
+    close = df["close"]
+    volume = df["volume"]
+
     ma10 = SMAIndicator(close, window=10).sma_indicator()
     ma30 = SMAIndicator(close, window=30).sma_indicator()
     rsi = RSIIndicator(close, window=14).rsi()
 
     last_close = close.iloc[-1]
-    last_open = df['open'].iloc[-1]
-    prev_open = df['open'].iloc[-2]
-    prev_close = df['close'].iloc[-2]
+    last_open = df["open"].iloc[-1]
+    prev_open = df["open"].iloc[-2]
+    prev_close = df["close"].iloc[-2]
 
     last_rsi = rsi.iloc[-1]
     last_ma10 = ma10.iloc[-1]
@@ -99,56 +123,19 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
 
     bearish_candles = last_close < last_open and prev_close < prev_open
     bullish_candles = last_close > last_open and prev_close > prev_open
-    last_candle_direction = 'UP' if last_close > last_open else 'DOWN'
+    last_candle_direction = "UP" if last_close > last_open else "DOWN"
 
     score = 0
     direction = None
 
+    # ---------- 1) RSI direction ----------
     if last_rsi < 35:
         score += 1
-        direction = 'SHORT'
+        direction = "SHORT"
     elif last_rsi > 65:
         score += 1
-        direction = 'LONG'
+        direction = "LONG"
 
-    if abs(last_ma10 - last_ma30) / last_ma30 > 0.007:
-        score += 1
-
-    if current_volume > 1.3 * avg_volume and current_volume < 3.0 * avg_volume:
-        score += 1
-
-    if direction == 'SHORT' and bearish_candles:
-        score += 1
-    elif direction == 'LONG' and bullish_candles:
-        score += 1
-
-    if direction == 'SHORT' and btc_change_pct <= 0:
-        score += 1
-    elif direction == 'LONG' and btc_change_pct >= 0:
-        score += 1
-
-    if direction == 'SHORT' and last_candle_direction == 'UP':
-        print(f"{symbol} skipped: SHORT contradicts green candle")
+    # Եթե RSI-ով ուղղություն չունենք, մնացածը իմաստ չկա
+    if direction is None:
         return None
-    elif direction == 'LONG' and last_candle_direction == 'DOWN':
-        print(f"{symbol} skipped: LONG contradicts red candle")
-        return None
-
-    if btc_change_pct > 1.2 and direction == 'SHORT':
-        print(f"{symbol} skipped due to BTC uptrend blocking SHORT")
-        return None
-    elif btc_change_pct < -1.2 and direction == 'LONG':
-        print(f"{symbol} skipped due to BTC downtrend blocking LONG")
-        return None
-
-    if btc_change_pct < -2.5 and btc_rsi < 35 and direction == 'SHORT':
-        print(f"{symbol} skipped: BTC oversold, SHORT blocked")
-        return None
-    if btc_change_pct > 2.5 and btc_rsi > 65 and direction == 'LONG':
-        print(f"{symbol} skipped: BTC overbought, LONG blocked")
-        return None
-
-    if score >= 4 and direction:
-        return direction, round(last_rsi, 2), round(last_ma10, 4), round(last_ma30, 4), last_close, score
-
-    return None
