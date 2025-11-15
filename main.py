@@ -39,5 +39,5 @@ def winrate():
     except Exception as e:
         return f"❌ Error: {e}", 500
 
-if name == "__main__":  # ✅ OK
+if __name__ == "__main__":  # ✅ OK
     app.run(host="0.0.0.0", port=10000)
