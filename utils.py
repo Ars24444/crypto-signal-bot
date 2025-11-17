@@ -3,6 +3,7 @@ import pandas as pd
 import time
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
+from ta.volatility import AverageTrueRange
 
 
 # ------------ Historical kline data ------------
