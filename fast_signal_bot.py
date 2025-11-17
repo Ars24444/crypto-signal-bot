@@ -163,15 +163,16 @@ def send_fast_signals(force=False):
             )
 
             msg = (
-                "⚡️ <b>FAST SIGNAL (Volatile bot)</b>\n"
-                f"Symbol: <b>{symbol}</b>\n"
+                "⚡️⚡️⚡️ <b>FAST BOT SIGNAL (1m)</b>\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                f"Symbol: <b>{symbol}</b> [FAST]\n"
                 f"Type: <b>{signal_type}</b>\n"
                 f"Entry: <code>{entry:.6f}</code>\n"
                 f"TP1: <code>{tp1:.6f}</code>\n"
                 f"TP2: <code>{tp2:.6f}</code>\n"
                 f"SL: <code>{sl:.6f}</code>\n\n"
-                f"Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC\n"
-                f"Mode: FAST / 1m volatility"
+                f"Mode: <b>FAST / 1m volatility</b>\n"
+                f"Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC"
             )
 
             try:
