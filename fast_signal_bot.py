@@ -22,8 +22,9 @@ bot = Bot(token=TELEGRAM_TOKEN)
 
 def detect_fast_signal(df):
     """
-    Ագրեսիվ սիգնալի լոգիկա volatile մոնետների համար.
-    Վերադարձնում է ("LONG" կամ "SHORT", entry, tp1, tp2, sl) կամ (None, None, None, None, None)
+    Ագրեսիվ սիգնալի լոգիկա volatile մոնետների համար (SCALP ռեժիմ):
+    Վերադարձնում է ("LONG" կամ "SHORT", entry, tp1, tp2, sl)
+    կամ (None, None, None, None, None)
     """
 
     if df is None or len(df) < 60:
@@ -49,7 +50,7 @@ def detect_fast_signal(df):
 
     # Volume spike (թույլացրած)
     avg_vol = df["volume"].rolling(window=20).mean().iloc[-1]
-    if avg_vol == 0 or avg_vol is None:
+    if avg_vol is None or avg_vol == 0:
         return None, None, None, None, None
 
     volume_spike = volume > avg_vol * 1.2  # նախկին 2x-ից շատ ավելի թույլ
@@ -66,28 +67,60 @@ def detect_fast_signal(df):
     move_down = (close - open_) / open_ <= -0.015  # >= 1.5% ուժեղ կարմիր
     move_up = (close - open_) / open_ >= 0.015     # >= 1.5% ուժեղ կանաչ
 
-    # -------- SHORT սիգնալ (dump catcher) --------
+    # -------- SHORT սիգնալ (dump catcher, SCALP) --------
     if move_down and volume_spike:
-        down_trend = ma10 < ma30 or close < ma10
-        rsi_ok = rsi >= 50  # 50-80 միջակայքում, dump-ի սկիզբ
+        down_trend = (ma10 < ma30) or (close < ma10)
+        rsi_ok = rsi >= 50  # dump-ի սկիզբ, RSI դեռ բարձր
 
         if down_trend and rsi_ok:
-            entry = close
-            tp1 = entry - 1.5 * atr
-            tp2 = entry - 2.5 * atr
-            sl = entry + 1.2 * atr
+            entry = float(close)
+
+            # 🔹 Պրոֆ TP-ներ (hybrid: % + ATR)
+            # TP1 ≈ -2…2.5%, TP2 ≈ -4…5%
+            tp1_percent = entry * 0.978          # -2.2%
+            tp2_percent = entry * 0.958          # -4.2%
+
+            tp1_atr = entry - 1.2 * float(atr)
+            tp2_atr = entry - 2.0 * float(atr)
+
+            # SHORT-ում TP-ն պետք է լինի entry-ից ցածր → վերցնում ենք առավել "հեռուն գնացած" safe տարբերակը
+            tp1 = max(tp1_percent, tp1_atr)
+            tp2 = max(tp2_percent, tp2_atr)
+
+            # 🔹 Պրոֆ SL (hybrid, capped)
+            # max ~1.8% վերևից, բայց հաշվի է առնում ATR-ը
+            sl_percent_cap = entry * 1.018       # +1.8% քեփ
+            sl_atr = entry + 0.8 * float(atr)    # volatility allowance
+
+            sl = min(sl_percent_cap, sl_atr)
+
             return "SHORT", float(entry), float(tp1), float(tp2), float(sl)
 
-    # -------- LONG սիգնալ (pump catcher / strong bounce) --------
+    # -------- LONG սիգնալ (pump catcher / strong bounce, SCALP) --------
     if move_up and volume_spike:
-        up_trend = ma10 > ma30 or close > ma10
-        rsi_ok = rsi <= 50  # 20-50 միջակայք
+        up_trend = (ma10 > ma30) or (close > ma10)
+        rsi_ok = rsi <= 50  # pullback-ից հետո pump
 
         if up_trend and rsi_ok:
-            entry = close
-            tp1 = entry + 1.5 * atr
-            tp2 = entry + 2.5 * atr
-            sl = entry - 1.2 * atr
+            entry = float(close)
+
+            # 🔹 Պրոֆ TP-ներ LONG-ի համար
+            tp1_percent = entry * 1.022          # +2.2%
+            tp2_percent = entry * 1.042          # +4.2%
+
+            tp1_atr = entry + 1.2 * float(atr)
+            tp2_atr = entry + 2.0 * float(atr)
+
+            # LONG-ում TP-ն պետք է լինի entry-ից վերև → վերցնում ենք խելոք conservative տարբերակը
+            tp1 = min(tp1_percent, tp1_atr)
+            tp2 = min(tp2_percent, tp2_atr)
+
+            # 🔹 Պրոֆ SL (կապում ենք 1.8% քեփով ու ATR-ով)
+            sl_percent_cap = entry * 0.982       # -1.8%
+            sl_atr = entry - 0.8 * float(atr)
+
+            sl = max(sl_percent_cap, sl_atr)
+
             return "LONG", float(entry), float(tp1), float(tp2), float(sl)
 
     return None, None, None, None, None
@@ -95,7 +128,7 @@ def detect_fast_signal(df):
 
 def send_fast_signals(force=False):
     """
-    FAST bot - volatile coins hunter
+    FAST bot - volatile coins hunter (SCALP)
     """
     print("🚀 FAST bot started", flush=True)
     start_time = time.time()
@@ -109,6 +142,7 @@ def send_fast_signals(force=False):
         try:
             top_symbols = get_top_volatile_symbols(active_symbols, limit=40)
         except TypeError:
+            # Եթե get_top_volatile_symbols-ը չի սպասում arguments
             top_symbols = get_top_volatile_symbols()
 
         print(f"🔥 FAST scan symbols: {len(top_symbols)}", flush=True)
@@ -121,8 +155,9 @@ def send_fast_signals(force=False):
                 print(f"⛔️ {symbol} is blacklisted ({get_blacklist_reason(symbol)})", flush=True)
                 continue
 
+            # 📌 Ուղղված է try/except-ի սխալ սինտաքսը
             try:
-                df = get_data(symbol)  # եթե get_data-ն 1m է օգտագործում
+                df = get_data(symbol)  # եթե get_data-ն default-ով արդեն 1m է
             except TypeError:
                 df = get_data(symbol, interval="1m")
 
@@ -163,14 +198,15 @@ def send_fast_signals(force=False):
             )
 
             msg = (
-                "⚡️⚡️⚡️ <b>FAST BOT SIGNAL (1m)</b>\n"
-                "━━━━━━━━━━━━━━━━━━━━\n"
+                "⚡️ <b>FAST BOT (1m)</b>\n"
+                "——————————————\n"
                 f"Symbol: <b>{symbol}</b> [FAST]\n"
                 f"Type: <b>{signal_type}</b>\n"
                 f"Entry: <code>{entry:.6f}</code>\n"
                 f"TP1: <code>{tp1:.6f}</code>\n"
                 f"TP2: <code>{tp2:.6f}</code>\n"
-                f"SL: <code>{sl:.6f}</code>\n\n"
+                f"SL: <code>{sl:.6f}</code>\n"
+                "——————————————\n"
                 f"Mode: <b>FAST / 1m volatility</b>\n"
                 f"Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC"
             )
