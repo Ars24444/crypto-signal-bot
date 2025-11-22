@@ -173,9 +173,10 @@ for symbol in symbols:
         tp2 = round(entry - atr * 2.5, 4)
         sl = round(entry + atr * 1.0, 4)
 
-    # ------------- TIME STAMP ----------------
-    signal_time = datetime.utcnow()
-    signal_time_ms = int(signal_time.timestamp() * 1000)
+        # ------------- TIME STAMP ----------------
+        signal_time = datetime.utcnow()
+        signal_time_ms = int(signal_time.timestamp() * 1000)
+
         # ------------ RESULT CHECK --------------
         result_check = check_trade_result(
             symbol=symbol,
