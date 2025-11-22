@@ -121,13 +121,13 @@ def send_signals(force: bool = False):
         # 🔥 PUMP DETECTOR — աշխատում է ամեն րոպե
         check_pump_and_send(symbol)
 
-        # Skip blacklisted
-        if is_blacklisted(symbol):
-            print(
-                f"⛔️ Skipping {symbol} — blacklisted ({get_blacklist_reason(symbol)})",
-                flush=True,
-            )
-            continue
+       # Skip blacklisted
+       if is_blacklisted(symbol):
+           print(
+               f"⛔️ Skipping {symbol} – blacklisted ({get_blacklist_reason(symbol)})",
+               flush=True,
+           )
+           continue 
 
         # ⏰ 1h ՍԻԳՆԱԼՆԵՐԻ ԺԱՄԱՅԻՆ ՖԻԼՏՐ
         # Եթե նոր ժամ չի (minute != 0), քո ՀԻՄՆԱԿԱՆ սիգնալները չեն աշխատի
