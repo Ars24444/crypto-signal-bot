@@ -13,6 +13,7 @@ from save_signal_result import save_signal_result
 from check_trade_result import check_trade_result
 from blacklist_manager import is_blacklisted, add_to_blacklist, get_blacklist_reason
 from pump_detector import is_pump_signal, build_pump_long_trade
+from utils import is_strong_signal
 
 TELEGRAM_TOKEN = "7842956033:AAE_M7bhnydjIlTYZzQatz4BunMz2_vi-nw"
 CHAT_ID = 5398864436
