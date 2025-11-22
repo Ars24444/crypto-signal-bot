@@ -20,6 +20,50 @@ TELEGRAM_TOKEN = "7842956033:AAGK_mRt_ADxZg3rbD82DAFQCb5X9AL0Wv8"
 CHAT_ID = 5398864436
 bot = Bot(token=TELEGRAM_TOKEN)
 
+def check_pump_and_send(symbol):
+    try:
+        df_1m = get_data_1m(symbol)
+        if df_1m is None or len(df_1m) < 60:
+            return
+
+        is_pump, info = is_pump_signal(df_1m)
+        if not is_pump:
+            return
+
+        trade = build_pump_long_trade(df_1m)
+
+        entry = trade["entry"]
+        tp1 = trade["tp1"]
+        tp2 = trade["tp2"]
+        sl = trade["sl"]
+
+        message = (
+            "🔥 PUMP LONG SIGNAL\n\n"
+            f"Symbol: {symbol}\n"
+            f"Entry: {entry:.6f}\n"
+            f"TP1: {tp1:.6f}\n"
+            f"TP2: {tp2:.6f}\n"
+            f"SL: {sl:.6f}\n\n"
+            f"Volume spike: {info['last_vol']:.0f} | Avg: {info['avg_vol']:.0f}\n"
+            f"Change: {info['price_change_pct']*100:.2f}%\n"
+        )
+
+        bot.send_message(chat_id=CHAT_ID, text=message)
+
+        log_sent_signal(
+            symbol,
+            {
+                "type": "LONG_PUMP",
+                "entry": entry,
+                "tp1": tp1,
+                "tp2": tp2,
+                "sl": sl,
+            },
+            result="pending",
+        )
+
+    except Exception as e:
+        print(f"[PUMP ERROR] {symbol}: {e}", flush=True)
 
 def send_signals(force: bool = False):
     print("🚀 Signal function started", flush=True)
@@ -60,7 +104,7 @@ def send_signals(force: bool = False):
     top_pick = None
     count = 0
 
-    # ---------------- SIGNAL SCAN ----------------
+    # --------------------- SIGNAL SCAN ---------------------
     for symbol in symbols:
         if (
             symbol in used_symbols
@@ -68,6 +112,9 @@ def send_signals(force: bool = False):
             or symbol not in active_usdt_symbols
         ):
             continue
+
+        # 🔥 PUMP DETECTOR - CHECK FIRST
+        check_pump_and_send(symbol)
 
         # Skip blacklisted
         if is_blacklisted(symbol):
