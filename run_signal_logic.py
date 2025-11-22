@@ -143,7 +143,7 @@ def send_signals(force: bool = False):
             print(f"⚠️ Skipping {symbol} — invalid DF", flush=True)
             continue
 
-        # ---------------- STRONG SIGNAL CHECK ----------------
+       # ------------- MAIN FILTER – STRONG SIGNAL -------------
         result = is_strong_signal(
             df,
             btc_change_pct=btc_change_pct,
@@ -155,15 +155,15 @@ def send_signals(force: bool = False):
             print(f"🔎 Debug: {symbol} rejected by signal filter", flush=True)
             continue
 
-        # ---------------- UNPACK STRONG SIGNAL ----------------
-        signal = result["type"]
+        # ----------- UNPACK RESULT -----------
+        signal = result["type"]   # "LONG" or "SHORT"
         entry = result["entry"]
         score = result["score"]
         rsi = result["rsi"]
         ma10 = result["ma10"]
         ma30 = result["ma30"]
 
-        # ---------------- ATR TP/SL ----------------
+        # ----------- ATR TP/SL -----------
         atr = AverageTrueRange(
             df["high"], df["low"], df["close"], window=14
         ).average_true_range().iloc[-1]
@@ -177,10 +177,26 @@ def send_signals(force: bool = False):
             tp2 = round(entry - atr * 2.5, 4)
             sl = round(entry + atr * 1.0, 4)
 
-        # ---------------- SAVE RESULT ----------------
+        # ----------- BUILD MESSAGE -----------
+        message = (
+            f"🔥 {symbol} (1h)\n\n"
+            f"Signal: {signal}\n"
+            f"Score: {score}/7\n"
+            f"RSI: {rsi:.2f}\n"
+            f"MA10: {ma10:.4f}, MA30: {ma30:.4f}\n"
+            f"Entry: {entry:.4f}\n"
+            f"TP1: {tp1:.4f}\n"
+            f"TP2: {tp2:.4f}\n"
+            f"SL: {sl:.4f}\n"
+        )
+
+        bot.send_message(chat_id=CHAT_ID, text=message)
+
+        # ----------- TIME STAMP -----------
         signal_time = datetime.utcnow()
         signal_time_ms = int(signal_time.timestamp() * 1000)
 
+        # ----------- RESULT CHECK -----------
         result_check = check_trade_result(
             symbol=symbol,
             signal_type=signal,
@@ -191,7 +207,7 @@ def send_signals(force: bool = False):
             signal_time_ms=signal_time_ms,
         )
 
-        # ---------------- LOG ----------------
+        # ----------- LOG SAVE -----------
         log_sent_signal(
             symbol=symbol,
             data={
@@ -203,6 +219,7 @@ def send_signals(force: bool = False):
             },
             result=result_check,
         )
+        
          # ------------ DEBUG PRINTS --------------
         print("\n📊 Signal Analysis Breakdown:", flush=True)
         print(f"🔹 Symbol: {symbol}", flush=True)
