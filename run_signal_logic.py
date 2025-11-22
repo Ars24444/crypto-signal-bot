@@ -14,7 +14,7 @@ from check_trade_result import check_trade_result
 from blacklist_manager import is_blacklisted, add_to_blacklist, get_blacklist_reason
 from pump_detector import is_pump_signal, build_pump_long_trade
 
-TELEGRAM_TOKEN = "7842956033:AAGK_mRt_ADx2g3rb0B2DAFQDC5X9AL0Wv8"
+TELEGRAM_TOKEN = "7842956033:AAE_M7bhnydjIlTYZzQatz4BunMz2_vi-nw"
 CHAT_ID = 5398864436
 bot = Bot(token=TELEGRAM_TOKEN)
 
