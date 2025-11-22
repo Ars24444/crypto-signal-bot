@@ -38,14 +38,15 @@ def check_pump_and_send(symbol):
         sl = trade["sl"]
 
         message = (
-            "🔥 PUMP LONG SIGNAL\n\n"
-            f"Symbol: {symbol}\n"
-            f"Entry: {entry:.6f}\n"
-            f"TP1: {tp1:.6f}\n"
-            f"TP2: {tp2:.6f}\n"
-            f"SL: {sl:.6f}\n\n"
-            f"Volume spike: {info['last_vol']:.0f} | Avg: {info['avg_vol']:.0f}\n"
-            f"Change: {info['price_change_pct']*100:.2f}%\n"
+            "🚀🔥 PUMP LONG SIGNAL (1m)\n\n"
+            f"Symbol: *{symbol}*\n"
+            f"Timeframe: 1m\n\n"
+            f"Entry: `{entry:.6f}`\n"
+            f"TP1: {tp1:.6f} (+5%)\n"
+            f"TP2: {tp2:.6f} (+10%)\n"
+            f"SL: `{sl:.6f}`\n\n"
+            f"📈 Volume spike: {info['last_vol']:.0f} vs avg {info['avg_vol']:.0f}\n"
+            f"📊 Last candle change: {info['price_change_pct']*100:.2f}%\n"
         )
 
         bot.send_message(chat_id=CHAT_ID, text=message)
