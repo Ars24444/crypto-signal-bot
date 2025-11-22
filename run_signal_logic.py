@@ -1,4 +1,3 @@
-Ars, [22.11.2025 15:52]
 import os
 import time
 from datetime import datetime
