@@ -75,7 +75,6 @@ def check_pump_and_send(symbol):
 def send_signals(force: bool = False):
     print("🚀 Signal function started", flush=True)
 
-
     # Current minute for hourly filter
     now = datetime.utcnow()
     current_minute = now.minute
