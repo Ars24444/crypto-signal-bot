@@ -28,5 +28,17 @@ def get_data(symbol, interval='1h', limit=100):
 def get_data_15m(symbol, limit=100):
     return get_data(symbol, interval="15m", limit=limit)
 
+# data_fetcher.py -ի մեջ, որտեղ մյուս get_data-ներն են
+
+def get_data_1m(symbol: str):
+    """
+    Վերադարձնում է 1m timeframe-ի df տվյալ տվյալ symbol-ի համար.
+    Պետք է վերադարձնի pandas DataFrame սյունակներով՝
+    ['open', 'high', 'low', 'close', 'volume']
+    """
+    return get_data(symbol, interval="1m")  # եթե քո get_data-ն interval է ընդունում
+
 def get_active_usdt_symbols():
     return get_top_volatile_symbols(limit=100)
+
+
