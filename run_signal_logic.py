@@ -109,69 +109,69 @@ def send_signals(force: bool = False):
     top_pick = None
     count = 0
 
-  # --------------------- SIGNAL SCAN ---------------------
-for symbol in symbols:
-    if (
-        symbol in used_symbols
-        or not symbol.endswith("USDT")
-        or symbol not in active_usdt_symbols
-    ):
-        continue
+    # --------------------- SIGNAL SCAN ---------------------
+    for symbol in symbols:
+        if (
+            symbol in used_symbols
+            or not symbol.endswith("USDT")
+            or symbol not in active_usdt_symbols
+        ):
+            continue
 
-    # 🔥 PUMP DETECTOR — աշխատում է ամեն րոպե
-    check_pump_and_send(symbol)
+        # 🔥 PUMP DETECTOR — աշխատում է ամեն րոպե
+        check_pump_and_send(symbol)
 
-    # Skip blacklisted
-    if is_blacklisted(symbol):
-        print(
-            f"⛔️ Skipping {symbol} — blacklisted ({get_blacklist_reason(symbol)})",
-            flush=True,
+        # Skip blacklisted
+        if is_blacklisted(symbol):
+            print(
+                f"⛔️ Skipping {symbol} — blacklisted ({get_blacklist_reason(symbol)})",
+                flush=True,
+            )
+            continue
+
+        # ⏰ 1h ՍԻԳՆԱԼՆԵՐԻ ԺԱՄԱՅԻՆ ՖԻԼՏՐ
+        # Եթե նոր ժամ չի (minute != 0), քո ՀԻՄՆԱԿԱՆ սիգնալները չեն աշխատի
+            if not force and current_minute != 0:
+            continue
+
+        # 1h chart data load ONLY after time filter
+        df = get_data(symbol)
+        if df is None or len(df) < 50 or df["close"].iloc[-1] == 0:
+            print(f"⚠️ Skipping {symbol} – invalid DF", flush=True)
+            continue
+
+        # MAIN FILTER – HIGH ACCURACY STRONG SIGNAL
+        result = is_strong_signal(
+            df,
+            btc_change_pct=btc_change_pct,
+            btc_rsi=btc_rsi,
+            symbol=symbol,
         )
-        continue
+        if not result:
+            print(f"🔎 Debug: {symbol} rejected by signal filter", flush=True)
+            continue
 
-    # ⏰ 1h ՍԻԳՆԱԼՆԵՐԻ ԺԱՄԱՅԻՆ ՖԻԼՏՐ
-    # Եթե նոր ժամ չի (minute != 0), քո ՀԻՄՆԱԿԱՆ սիգնալները չեն աշխատի
-    if not force and current_minute != 0:
-        continue
+        # ----------- UNPACK DICT --------------
+        signal = result["type"]
+        entry = result["entry"]
+        score = result["score"]
+        rsi = result["rsi"]
+        ma10 = result["ma10"]
+        ma30 = result["ma30"]
 
-    # 1h chart data load ONLY after time filter
-    df = get_data(symbol)
-    if df is None or len(df) < 50 or df["close"].iloc[-1] == 0:
-        print(f"⚠️ Skipping {symbol} – invalid DF", flush=True)
-        continue
+        # ------------ ATR TP/SL --------------
+        atr = AverageTrueRange(
+            df["high"], df["low"], df["close"], window=14
+        ).average_true_range().iloc[-1]
 
-    # MAIN FILTER – HIGH ACCURACY STRONG SIGNAL
-    result = is_strong_signal(
-        df,
-        btc_change_pct=btc_change_pct,
-        btc_rsi=btc_rsi,
-        symbol=symbol,
-    )
-    if not result:
-        print(f"🔎 Debug: {symbol} rejected by signal filter", flush=True)
-        continue
-
-    # ----------- UNPACK DICT --------------
-    signal = result["type"]
-    entry = result["entry"]
-    score = result["score"]
-    rsi = result["rsi"]
-    ma10 = result["ma10"]
-    ma30 = result["ma30"]
-
-    # ------------ ATR TP/SL --------------
-    atr = AverageTrueRange(
-        df["high"], df["low"], df["close"], window=14
-    ).average_true_range().iloc[-1]
-
-    if signal == "LONG":
-        tp1 = round(entry + atr * 1.5, 4)
-        tp2 = round(entry + atr * 2.5, 4)
-        sl = round(entry - atr * 1.0, 4)
-    else:
-        tp1 = round(entry - atr * 1.5, 4)
-        tp2 = round(entry - atr * 2.5, 4)
-        sl = round(entry + atr * 1.0, 4)
+        if signal == "LONG":
+            tp1 = round(entry + atr * 1.5, 4)
+            tp2 = round(entry + atr * 2.5, 4)
+            sl = round(entry - atr * 1.0, 4)
+        else:
+            tp1 = round(entry - atr * 1.5, 4)
+            tp2 = round(entry - atr * 2.5, 4)
+            sl = round(entry + atr * 1.0, 4)
 
         # ------------- TIME STAMP ----------------
         signal_time = datetime.utcnow()
