@@ -1,3 +1,4 @@
+Ars, [22.11.2025 15:52]
 import os
 import time
 from datetime import datetime
@@ -6,20 +7,22 @@ from telegram import Bot
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
 
-from data_fetcher import get_data, get_data_15m, get_active_usdt_symbols
+from data_fetcher import get_data, get_data_15m, get_active_usdt_symbols, get_data_1m
 from get_top_symbols import get_top_volatile_symbols
 from signal_logger import log_sent_signal
 from save_signal_result import save_signal_result
 from check_trade_result import check_trade_result
 from blacklist_manager import is_blacklisted, add_to_blacklist, get_blacklist_reason
-from utils import is_strong_signal
 from pump_detector import is_pump_signal, build_pump_long_trade
-from data_fetcher import get_data_1m
 
-TELEGRAM_TOKEN = "7842956033:AAGK_mRt_ADxZg3rbD82DAFQCb5X9AL0Wv8"
+TELEGRAM_TOKEN = "7842956033:AAGK_mRt_ADx2g3rb0B2DAFQDC5X9AL0Wv8"
 CHAT_ID = 5398864436
 bot = Bot(token=TELEGRAM_TOKEN)
 
+
+# -----------------------------------------------------
+# PUMP DETECTOR MODULE (runs every minute)
+# -----------------------------------------------------
 def check_pump_and_send(symbol):
     try:
         df_1m = get_data_1m(symbol)
@@ -66,24 +69,27 @@ def check_pump_and_send(symbol):
     except Exception as e:
         print(f"[PUMP ERROR] {symbol}: {e}", flush=True)
 
+
+# -----------------------------------------------------
+# MAIN BOT: HOURLY SIGNALS + PUMP DETECTOR
+# -----------------------------------------------------
 def send_signals(force: bool = False):
     print("🚀 Signal function started", flush=True)
 
-    # Ժամի ֆիլտր հիմնական 1h սիգնալների համար
+    # Current minute for hourly filter
     now = datetime.utcnow()
     current_minute = now.minute
 
-    # ---------------- BTC DATA LOADING ----------------
+    # -----------------------------------------------------
+    # LOAD BTC
+    # -----------------------------------------------------
     try:
-        print("🔍 Trying to load BTC data...", flush=True)
+        print("🔍 Loading BTC 15m...", flush=True)
         btc_df = get_data_15m("BTCUSDT")
 
         if btc_df is None or len(btc_df) < 40:
-            print("❌ BTC data fetch failed or insufficient", flush=True)
             bot.send_message(chat_id=CHAT_ID, text="⚠️ BTC data unavailable.")
             return
-
-        print(f"🔍 BTC data loaded: {len(btc_df)} rows", flush=True)
 
         btc_close = btc_df["close"]
         btc_rsi_series = RSIIndicator(btc_close, window=14).rsi()
@@ -96,20 +102,19 @@ def send_signals(force: bool = False):
         print(f"📊 BTC change: {btc_change_pct:.2f}% | BTC RSI: {btc_rsi:.2f}", flush=True)
 
     except Exception as e:
-        print("❌ Error loading BTC data:", e, flush=True)
         bot.send_message(chat_id=CHAT_ID, text="⚠️ Failed to load BTC data.")
         return
 
-    # ---------------- SYMBOL LIST ----------------
+    # -----------------------------------------------------
+    # SYMBOL LIST
+    # -----------------------------------------------------
     symbols = get_top_volatile_symbols(limit=200)
     active_usdt_symbols = get_active_usdt_symbols()
     used_symbols = set()
-    messages = []
-    top_score = -1
-    top_pick = None
-    count = 0
 
-    # --------------------- SIGNAL SCAN ---------------------
+    # -----------------------------------------------------
+    # SCAN SYMBOLS
+    # -----------------------------------------------------
     for symbol in symbols:
         if (
             symbol in used_symbols
@@ -118,40 +123,40 @@ def send_signals(force: bool = False):
         ):
             continue
 
-        # 🔥 PUMP DETECTOR — աշխատում է ամեն րոպե
+        # ---------------- PUMP DETECTOR (runs every minute) ----------------
         check_pump_and_send(symbol)
 
-       # Skip blacklisted
-       if is_blacklisted(symbol):
-           print(
-               f"⛔️ Skipping {symbol} – blacklisted ({get_blacklist_reason(symbol)})",
-               flush=True,
-           )
-           continue 
-
-        # ⏰ 1h ՍԻԳՆԱԼՆԵՐԻ ԺԱՄԱՅԻՆ ՖԻԼՏՐ
-        # Եթե նոր ժամ չի (minute != 0), քո ՀԻՄՆԱԿԱՆ սիգնալները չեն աշխատի
-            if not force and current_minute != 0:
+# ---------------- Skip blacklisted ----------------
+        if is_blacklisted(symbol):
+            print(
+                f"⛔️ Skipping {symbol} — blacklisted ({get_blacklist_reason(symbol)})",
+                flush=True,
+            )
             continue
 
-        # 1h chart data load ONLY after time filter
+        # ---------------- 1H TIME FILTER ----------------
+        if not force and current_minute != 0:
+            continue
+
+        # ---------------- LOAD 1H DATA ----------------
         df = get_data(symbol)
         if df is None or len(df) < 50 or df["close"].iloc[-1] == 0:
-            print(f"⚠️ Skipping {symbol} – invalid DF", flush=True)
+            print(f"⚠️ Skipping {symbol} — invalid DF", flush=True)
             continue
 
-        # MAIN FILTER – HIGH ACCURACY STRONG SIGNAL
+        # ---------------- STRONG SIGNAL CHECK ----------------
         result = is_strong_signal(
             df,
             btc_change_pct=btc_change_pct,
             btc_rsi=btc_rsi,
             symbol=symbol,
         )
+
         if not result:
             print(f"🔎 Debug: {symbol} rejected by signal filter", flush=True)
             continue
 
-        # ----------- UNPACK DICT --------------
+        # ---------------- UNPACK STRONG SIGNAL ----------------
         signal = result["type"]
         entry = result["entry"]
         score = result["score"]
@@ -159,7 +164,7 @@ def send_signals(force: bool = False):
         ma10 = result["ma10"]
         ma30 = result["ma30"]
 
-        # ------------ ATR TP/SL --------------
+        # ---------------- ATR TP/SL ----------------
         atr = AverageTrueRange(
             df["high"], df["low"], df["close"], window=14
         ).average_true_range().iloc[-1]
@@ -173,11 +178,10 @@ def send_signals(force: bool = False):
             tp2 = round(entry - atr * 2.5, 4)
             sl = round(entry + atr * 1.0, 4)
 
-        # ------------- TIME STAMP ----------------
+        # ---------------- SAVE RESULT ----------------
         signal_time = datetime.utcnow()
         signal_time_ms = int(signal_time.timestamp() * 1000)
 
-        # ------------ RESULT CHECK --------------
         result_check = check_trade_result(
             symbol=symbol,
             signal_type=signal,
@@ -188,7 +192,7 @@ def send_signals(force: bool = False):
             signal_time_ms=signal_time_ms,
         )
 
-        # ------------ LOG SAVE --------------
+        # ---------------- LOG ----------------
         log_sent_signal(
             symbol=symbol,
             data={
@@ -200,8 +204,7 @@ def send_signals(force: bool = False):
             },
             result=result_check,
         )
-
-        # ------------ DEBUG PRINTS --------------
+         # ------------ DEBUG PRINTS --------------
         print("\n📊 Signal Analysis Breakdown:", flush=True)
         print(f"🔹 Symbol: {symbol}", flush=True)
         print(f"🔹 Type: {signal}", flush=True)
@@ -240,6 +243,7 @@ def send_signals(force: bool = False):
 
         if count >= 8:
             break
+
 
     # ------------ TELEGRAM SEND ALL SIGNALS --------------
     try:
