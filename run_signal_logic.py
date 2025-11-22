@@ -283,10 +283,11 @@ def send_signals(force: bool = False):
                 print(f"\n📤 Sending signal for {symbol}:\n{msg}\n", flush=True)
                 bot.send_message(chat_id=CHAT_ID, text=msg)
         else:
-            print("📭 No strong signals found.", flush=True)
-            bot.send_message(
-                chat_id=CHAT_ID,
-                text="📩 No strong signals found. Market is calm.",
-            )
+            # print("📩 No strong signals found.", flush=True)
+            # bot.send_message(
+            #     chat_id=CHAT_ID,
+            #     text="📩 No strong signals found. Market is calm.",
+            # )
+            pass
     except Exception as e:
         print("❌ ERROR in send_signals:", e, flush=True)
