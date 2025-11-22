@@ -116,9 +116,7 @@ def send_signals(force: bool = False):
     active_usdt_symbols = get_active_usdt_symbols()
     used_symbols = set()
 
-    # -----------------------------------------------------
-    # SCAN SYMBOLS
-    # -----------------------------------------------------
+   # --------------------- SIGNAL SCAN ---------------------
     for symbol in symbols:
         if (
             symbol in used_symbols
@@ -127,10 +125,15 @@ def send_signals(force: bool = False):
         ):
             continue
 
-        # ---------------- PUMP DETECTOR (runs every minute) ----------------
-        check_pump_and_send(symbol)
+        # --------------------------------------------------
+        # 🔥 PUMP DETECTOR – ԱՇԽԱՏՈՒՄ Է ԱՄԵՆ ՌՈՊԵ
+        # --------------------------------------------------
+        try:
+            check_pump_and_send(symbol)
+        except Exception as e:
+            print(f"[PUMP ERROR] {symbol}: {e}", flush=True)
 
-# ---------------- Skip blacklisted ----------------
+        # ---------------- Skip blacklisted ----------------
         if is_blacklisted(symbol):
             print(
                 f"⛔️ Skipping {symbol} — blacklisted ({get_blacklist_reason(symbol)})",
@@ -138,16 +141,20 @@ def send_signals(force: bool = False):
             )
             continue
 
-        # ---------------- 1H TIME FILTER ----------------
+        # --------------------------------------------------
+        # ⏰ TIME FILTER – ՀԻՄՆԱԿԱՆ 1H ՍԻԳՆԱԼՆԵՐԻ ՀԱՄԱՐ
+        # pump-ը արդեն ստուգել ենք, էդ պատճառով սա
+        # ԱՐԳԵԼՈՒՄ Է ՄԻԱՅՆ 1H լոգիկան, ՈՉ թե pump-ը
+        # --------------------------------------------------
         if not force and current_minute != 0:
+            # ոչ ամբողջ ժամ է → 1h սիգնալ չենք հաշվում
             continue
 
         # ---------------- LOAD 1H DATA ----------------
         df = get_data(symbol)
         if df is None or len(df) < 50 or df["close"].iloc[-1] == 0:
-            print(f"⚠️ Skipping {symbol} — invalid DF", flush=True)
+            print(f"⚠️ Skipping {symbol} – invalid DF", flush=True)
             continue
-
        # ------------- MAIN FILTER – STRONG SIGNAL -------------
         result = is_strong_signal(
             df,
