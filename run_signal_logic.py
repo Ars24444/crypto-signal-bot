@@ -15,7 +15,7 @@ from blacklist_manager import is_blacklisted, add_to_blacklist, get_blacklist_re
 from pump_detector import is_pump_signal, build_pump_long_trade
 from utils import is_strong_signal
 
-TELEGRAM_TOKEN = "7552477171:AAHlATwRmz3qyeaoMyguWf9qrCjQAW9g2cg"
+TELEGRAM_TOKEN = "8388716002:AAGyOsF_t3ciOtjugKNQX2e5t7R3IxLWte4"
 CHAT_ID = 5398864436
 bot = Bot(token=TELEGRAM_TOKEN)
 
