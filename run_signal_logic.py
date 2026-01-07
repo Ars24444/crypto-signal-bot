@@ -18,7 +18,7 @@ from utils import is_strong_signal
 TELEGRAM_BOT_TOKEN="8388716002:AAGy0sF_t3ciOtjugKNQ2e5t7R3IxlWte4"
 CHAT_ID=5398864436
 
-bot = Bot(token=TELEGRAM_TOKEN)
+bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 
 # -----------------------------------------------------
