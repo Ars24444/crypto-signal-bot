@@ -77,6 +77,9 @@ def check_pump_and_send(symbol):
 def send_signals(force: bool = False):
     print("🚀 Signal function started", flush=True)
 
+    print("CHAT_ID USED =", CHAT_ID, flush=True)
+    print("TOKEN OK =", TELEGRAM_TOKEN is not None, flush=True)
+
     # Current minute for hourly filter
     now = datetime.utcnow()
     current_minute = now.minute
