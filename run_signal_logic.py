@@ -278,20 +278,17 @@ def send_signals(force: bool = False):
             break
 
 
-    # ------------ TELEGRAM SEND ALL SIGNALS --------------
-    try:
-        if messages:
-            for symbol, msg in messages:
-                if symbol == top_pick:
-                    msg = "🔝 TOP PICK\n" + msg
-                print(f"\n📤 Sending signal for {symbol}:\n{msg}\n", flush=True)
-                bot.send_message(chat_id=CHAT_ID, text=msg)
-        else:
-                print("📩 No strong signals found.", flush=True)
-                bot.send_message(
-                    chat_id=CHAT_ID,
-                    text="📩 No strong signals found. Market is calm.",
-                )
-            
-    except Exception as e:
-        print("❌ ERROR in send_signals:", e, flush=True)
+   # ------------ TELEGRAM SEND ALL SIGNALS --------------
+   try:
+       if not messages:
+           print("📩 No strong signals found.", flush=True)
+           return   # ⬅️ ԱՀԱ ԱՅԴ ԿԱՐԵՎՈՐ ՏՈՂԸ
+
+       for symbol, msg in messages:
+           if symbol == top_pick:
+               msg = "🔝 TOP PICK\n" + msg
+
+           bot.send_message(chat_id=CHAT_ID, text=msg)
+
+   except Exception as e:
+       print("❌ ERROR in send_signals:", e, flush=True)
