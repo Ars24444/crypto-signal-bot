@@ -288,6 +288,6 @@ def send_signals(force: bool = False):
                     chat_id=CHAT_ID,
                     text="📩 No strong signals found. Market is calm.",
                 )
-            pass
+                pass
     except Exception as e:
         print("❌ ERROR in send_signals:", e, flush=True)
