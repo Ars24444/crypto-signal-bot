@@ -7,7 +7,7 @@ from generate_summary import generate_summary
 from signal_logger import send_winrate_to_telegram
 from fast_signal_bot import send_fast_signals
 
-TELEGRAM_BOT_TOKEN=8388716002:"AAGy0sF_t3ciOtjugKNQ2e5t7R3IxlWte4"
+TELEGRAM_BOT_TOKEN=8388716002:AAGy0sF_t3ciOtjugKNQ2e5t7R3IxlWte4
 CHAT_ID=5398864436
 
 
