@@ -16,6 +16,8 @@ from utils import is_strong_signal
 TELEGRAM_BOT_TOKEN = "8388716002:AAGyOsF_t3ciOtjugKNQX2e5t7R3IxLWte4"
 CHAT_ID = 5398864436
 
+DEBUG = True  # ⬅️ սա կարող ես հետո False դարձնել
+
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 
@@ -63,24 +65,34 @@ def send_signals(force: bool = False):
     symbols = get_top_volatile_symbols(limit=200)
     active_symbols = get_active_usdt_symbols()
 
+    print(f"🔢 Symbols to check: {len(symbols)}", flush=True)
+
     # ================= SIGNAL SCAN =================
     for symbol in symbols:
+        if DEBUG:
+            print(f"\n🔎 Checking symbol: {symbol}", flush=True)
+
         if (
             symbol in used_symbols
             or not symbol.endswith("USDT")
             or symbol not in active_symbols
         ):
+            if DEBUG:
+                print(f"❌ {symbol} skipped: not active/duplicate", flush=True)
             continue
 
         if is_blacklisted(symbol):
-            print(
-                f"⛔ Skipped {symbol} — {get_blacklist_reason(symbol)}",
-                flush=True,
-            )
+            if DEBUG:
+                print(
+                    f"⛔ {symbol} blacklisted — {get_blacklist_reason(symbol)}",
+                    flush=True,
+                )
             continue
 
         df = get_data(symbol)
         if df is None or len(df) < 50:
+            if DEBUG:
+                print(f"❌ {symbol} skipped: no or low data", flush=True)
             continue
 
         result = is_strong_signal(
@@ -91,14 +103,20 @@ def send_signals(force: bool = False):
         )
 
         if not result:
+            if DEBUG:
+                print(f"❌ {symbol} rejected by signal logic", flush=True)
             continue
 
+        # ===== ACCEPTED SIGNAL =====
         signal = result["type"]
         entry = result["entry"]
         score = result["score"]
         rsi = result["rsi"]
         ma10 = result["ma10"]
         ma30 = result["ma30"]
+
+        if DEBUG:
+            print(f"🔥 {symbol} ACCEPTED | {signal} score={score}", flush=True)
 
         atr = AverageTrueRange(
             df["high"], df["low"], df["close"], window=14
@@ -177,4 +195,4 @@ def send_signals(force: bool = False):
 
 # ================= ENTRY POINT =================
 if __name__ == "__main__":
-    send_signals()
+    send_signals(force=True)  # ⬅️ ԹԵՍՏԻ ՀԱՄԱՐ
