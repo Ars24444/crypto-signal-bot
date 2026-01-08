@@ -2,6 +2,8 @@ import numpy as np
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 
+DEBUG = True  # ⬅️ production-ում կարող ես դարձնել False
+
 
 def has_minimum_long_short_trades(symbol):
     try:
@@ -12,9 +14,13 @@ def has_minimum_long_short_trades(symbol):
 
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     if df is None or len(df) < 40:
+        if DEBUG:
+            print(f"❌ {symbol} rejected: not enough candles", flush=True)
         return None
 
     if symbol and not has_minimum_long_short_trades(symbol):
+        if DEBUG:
+            print(f"❌ {symbol} rejected: low trade activity", flush=True)
         return None
 
     close = df["close"]
@@ -36,37 +42,35 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     bullish_candles = last_close > last_open and prev_close > prev_open
     bearish_candles = last_close < last_open and prev_close < prev_open
 
-    # ================= BTC FILTER (EARLY EXIT) =================
-    if btc_change_pct < -0.7 or btc_rsi < 40:
-        allow_long = False
-    else:
-        allow_long = True
+    # ================= BTC FILTER =================
+    allow_long = not (btc_change_pct < -0.7 or btc_rsi < 40)
+    allow_short = not (btc_change_pct > 0.7 or btc_rsi > 60)
 
-    if btc_change_pct > 0.7 or btc_rsi > 60:
-        allow_short = False
-    else:
-        allow_short = True
+    if not allow_long and not allow_short:
+        if DEBUG:
+            print(
+                f"❌ {symbol} rejected by BTC filter "
+                f"(BTCΔ={btc_change_pct:.2f}%, BTC_RSI={btc_rsi:.1f})",
+                flush=True,
+            )
+        return None
 
     def score_long():
         score = 0
 
-        # Trend
         if last_close > ma10 > ma30:
             score += 2
         elif last_close > ma30:
             score += 1
 
-        # RSI pullback
         if 35 <= rsi <= 45:
             score += 2
         elif 30 <= rsi < 35 or 45 < rsi <= 50:
             score += 1
 
-        # Candles
         if bullish_candles:
             score += 1
 
-        # Volume (only if liquid)
         if avg_volume > 0:
             if current_volume >= avg_volume * 1.15:
                 score += 2
@@ -78,23 +82,19 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     def score_short():
         score = 0
 
-        # Trend
         if last_close < ma10 < ma30:
             score += 2
         elif last_close < ma30:
             score += 1
 
-        # RSI pullback
         if 55 <= rsi <= 65:
             score += 2
         elif 50 <= rsi < 55 or 65 < rsi <= 70:
             score += 1
 
-        # Candles
         if bearish_candles:
             score += 1
 
-        # Volume
         if avg_volume > 0:
             if current_volume >= avg_volume * 1.15:
                 score += 2
@@ -106,19 +106,31 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     long_score = score_long() if allow_long else -1
     short_score = score_short() if allow_short else -1
 
-    print(
-        f"📊 {symbol} | LONG={long_score} SHORT={short_score} "
-        f"| RSI={rsi:.1f} MA10={ma10:.4f} MA30={ma30:.4f} "
-        f"| vol={current_volume:.0f}/{avg_volume:.0f} "
-        f"| BTCΔ={btc_change_pct:.2f}% BTC_RSI={btc_rsi:.1f}",
-        flush=True,
-    )
+    if DEBUG:
+        print(
+            f"📊 {symbol} | LONG={long_score} SHORT={short_score} "
+            f"| RSI={rsi:.1f} MA10={ma10:.4f} MA30={ma30:.4f} "
+            f"| vol={current_volume:.0f}/{avg_volume:.0f} "
+            f"| BTCΔ={btc_change_pct:.2f}% BTC_RSI={btc_rsi:.1f}",
+            flush=True,
+        )
 
     # ================= FINAL DECISION =================
     MIN_SCORE = 5
-    MIN_DIFF = 1  # spread protection
+    MIN_DIFF = 1
+
+    if long_score < MIN_SCORE and short_score < MIN_SCORE:
+        if DEBUG:
+            print(
+                f"❌ {symbol} rejected: low score "
+                f"(LONG={long_score}, SHORT={short_score})",
+                flush=True,
+            )
+        return None
 
     if long_score >= MIN_SCORE and long_score > short_score + MIN_DIFF:
+        if DEBUG:
+            print(f"🔥 {symbol} ACCEPTED: LONG score={long_score}", flush=True)
         return {
             "type": "LONG",
             "rsi": rsi,
@@ -129,6 +141,8 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
         }
 
     if short_score >= MIN_SCORE and short_score > long_score + MIN_DIFF:
+        if DEBUG:
+            print(f"🔥 {symbol} ACCEPTED: SHORT score={short_score}", flush=True)
         return {
             "type": "SHORT",
             "rsi": rsi,
@@ -137,5 +151,12 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
             "entry": last_close,
             "score": short_score,
         }
+
+    if DEBUG:
+        print(
+            f"❌ {symbol} rejected: score conflict "
+            f"(LONG={long_score}, SHORT={short_score})",
+            flush=True,
+        )
 
     return None
