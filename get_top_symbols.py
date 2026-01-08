@@ -3,6 +3,7 @@ import requests
 from functools import lru_cache
 
 BINANCE_BASE = "https://api.binance.com/api/v3"
+DEBUG = True
 
 
 # ================= CACHE =================
@@ -12,13 +13,19 @@ def get_existing_usdt_symbols():
     try:
         r = requests.get(url, timeout=10)
         data = r.json()
-        return {
+        symbols = {
             s["symbol"]
             for s in data["symbols"]
             if s["quoteAsset"] == "USDT" and s["status"] == "TRADING"
         }
+
+        if DEBUG:
+            print(f"📦 exchangeInfo: {len(symbols)} USDT symbols loaded", flush=True)
+
+        return symbols
+
     except Exception as e:
-        print(f"⚠️ exchangeInfo error: {e}")
+        print(f"⚠️ exchangeInfo error: {e}", flush=True)
         return set()
 
 
@@ -29,9 +36,6 @@ def is_symbol_active_by_trades(
     lookback=3,
     min_volume=50,
 ):
-    """
-    Lightweight activity check using few candles only
-    """
     try:
         url = f"{BINANCE_BASE}/klines"
         params = {
@@ -43,27 +47,42 @@ def is_symbol_active_by_trades(
         time.sleep(0.15)
         r = requests.get(url, params=params, timeout=5)
         if r.status_code != 200:
+            if DEBUG:
+                print(f"❌ {symbol} activity check failed (HTTP {r.status_code})", flush=True)
             return False
 
         data = r.json()
         if not isinstance(data, list) or len(data) < lookback:
+            if DEBUG:
+                print(f"❌ {symbol} activity check failed (bad data)", flush=True)
             return False
 
         total_volume = sum(float(k[5]) for k in data)
         total_buy = sum(float(k[9]) for k in data)
 
         if total_volume < min_volume:
+            if DEBUG:
+                print(f"❌ {symbol} inactive: low volume ({total_volume:.1f})", flush=True)
             return False
 
         buy_ratio = total_buy / total_volume
 
-        # block extreme manipulation only
         if buy_ratio < 0.02 or buy_ratio > 0.98:
+            if DEBUG:
+                print(
+                    f"❌ {symbol} inactive: extreme buy ratio ({buy_ratio:.2f})",
+                    flush=True,
+                )
             return False
+
+        if DEBUG:
+            print(f"✅ {symbol} active (vol={total_volume:.1f}, buy_ratio={buy_ratio:.2f})", flush=True)
 
         return True
 
-    except Exception:
+    except Exception as e:
+        if DEBUG:
+            print(f"❌ {symbol} activity error: {e}", flush=True)
         return False
 
 
@@ -79,8 +98,12 @@ def get_top_volatile_symbols(
             return []
 
         data = r.json()
+
+        if DEBUG:
+            print(f"📊 24h tickers loaded: {len(data)}", flush=True)
+
     except Exception as e:
-        print(f"⚠️ ticker error: {e}")
+        print(f"⚠️ ticker error: {e}", flush=True)
         return []
 
     valid_symbols = get_existing_usdt_symbols()
@@ -115,14 +138,21 @@ def get_top_volatile_symbols(
 
         candidates.append((symbol, price_change))
 
-    # sort by volatility
+    if DEBUG:
+        print(f"🧮 Candidates after filters: {len(candidates)}", flush=True)
+
     candidates.sort(key=lambda x: x[1], reverse=True)
     top_symbols = [s for s, _ in candidates[:limit]]
 
-    # lightweight activity check (NOT for all)
+    if DEBUG:
+        print(f"🚀 Top volatile symbols selected: {len(top_symbols)}", flush=True)
+
     active_symbols = []
-    for symbol in top_symbols[:60]:  # cap API usage
+    for symbol in top_symbols[:60]:  # API cap
         if is_symbol_active_by_trades(symbol):
             active_symbols.append(symbol)
+
+    if DEBUG:
+        print(f"🎯 Active symbols after activity check: {len(active_symbols)}", flush=True)
 
     return active_symbols
