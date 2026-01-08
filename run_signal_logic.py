@@ -1,5 +1,4 @@
 import os
-import time
 from datetime import datetime
 
 from telegram import Bot
@@ -9,7 +8,6 @@ from ta.volatility import AverageTrueRange
 from data_fetcher import get_data, get_data_15m, get_active_usdt_symbols
 from get_top_symbols import get_top_volatile_symbols
 from signal_logger import log_sent_signal
-from check_trade_result import check_trade_result
 from blacklist_manager import is_blacklisted, get_blacklist_reason
 from utils import is_strong_signal
 
@@ -28,7 +26,7 @@ def send_signals(force: bool = False):
     now = datetime.utcnow()
     current_minute = now.minute
 
-    # ⏰ STRICT :02 FILTER
+    # ⏰ STRICT :00 FILTER (1H candle close)
     if not force and current_minute not in [0, 1]:
         print("⏳ Not :00 minute, skipping scan", flush=True)
         return
@@ -129,7 +127,19 @@ def send_signals(force: bool = False):
             f"SL: {sl}"
         )
 
-        messages.append((symbol, score, message))
+        messages.append({
+            "symbol": symbol,
+            "score": score,
+            "message": message,
+            "data": {
+                "type": signal,
+                "entry": entry,
+                "tp1": tp1,
+                "tp2": tp2,
+                "sl": sl,
+            },
+        })
+
         used_symbols.add(symbol)
 
         if score > top_score:
@@ -147,8 +157,9 @@ def send_signals(force: bool = False):
         )
         return
 
-    for symbol, score, msg in messages:
-        if symbol == top_pick:
+    for item in messages:
+        msg = item["message"]
+        if item["symbol"] == top_pick:
             msg = "🔝 TOP PICK\n\n" + msg
 
         bot.send_message(
@@ -158,14 +169,8 @@ def send_signals(force: bool = False):
         )
 
         log_sent_signal(
-            symbol=symbol,
-            data={
-                "type": signal,
-                "entry": entry,
-                "tp1": tp1,
-                "tp2": tp2,
-                "sl": sl,
-            },
+            symbol=item["symbol"],
+            data=item["data"],
             result="pending",
         )
 
