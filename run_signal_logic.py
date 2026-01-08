@@ -23,6 +23,7 @@ bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # ================= MAIN SIGNAL FUNCTION =================
 def send_signals(force: bool = False):
+    print("🧪 send_signals() CALLED", flush=True)
     print("🚀 Signal scan started", flush=True)
 
     now = datetime.utcnow()
@@ -169,10 +170,15 @@ def send_signals(force: bool = False):
 
     # ================= TELEGRAM SEND =================
     if not messages:
-        bot.send_message(
-            chat_id=CHAT_ID,
-            text="📩 No strong signals found. Market is calm.",
-        )
+        try:
+            bot.send_message(
+                chat_id=CHAT_ID,
+                text="⏳ This hour no signals were generated. Bot is running.",
+            )
+            print("✅ Telegram message sent", flush=True)
+        except Exception as e:
+            print(f"❌ Telegram send error: {e}", flush=True)
+
         return
 
     for item in messages:
