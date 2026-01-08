@@ -16,23 +16,25 @@ from utils import is_strong_signal
 TELEGRAM_BOT_TOKEN = "8388716002:AAGyOsF_t3ciOtjugKNQX2e5t7R3IxLWte4"
 CHAT_ID = 5398864436
 
-DEBUG = True  # ⬅️ սա կարող ես հետո False դարձնել
+DEBUG = True
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 
 # ================= MAIN SIGNAL FUNCTION =================
 def send_signals(force: bool = False):
-    print("🧪 send_signals() CALLED", flush=True)
-    print("🚀 Signal scan started", flush=True)
-
     now = datetime.utcnow()
-    current_minute = now.minute
 
-    # ⏰ STRICT :00 FILTER (1H candle close)
-    if not force and current_minute not in [0, 1]:
-        print("⏳ Not :00 minute, skipping scan", flush=True)
-        return
+    # ✅ TELEGRAM TEST MESSAGE (ԱՄԵՆԱԿԱՐԵՎՈՐԸ)
+    try:
+        bot.send_message(
+            chat_id=CHAT_ID,
+            text=f"🟢 Bot is alive\n/run triggered\nUTC time: {now.strftime('%H:%M')}",
+        )
+    except Exception as e:
+        print("❌ Telegram test message failed:", e, flush=True)
+
+    print("🚀 Signal scan started", flush=True)
 
     messages = []
     used_symbols = set()
@@ -53,47 +55,24 @@ def send_signals(force: bool = False):
         btc_prev = btc_close.iloc[-2]
         btc_change_pct = (btc_last - btc_prev) / btc_prev * 100
 
-        print(
-            f"📊 BTC Δ {btc_change_pct:.2f}% | RSI {btc_rsi:.2f}",
-            flush=True,
-        )
-
     except Exception as e:
-        print("❌ BTC load error:", e, flush=True)
+        bot.send_message(chat_id=CHAT_ID, text=f"❌ BTC load error: {e}")
         return
 
     # ================= SYMBOL LIST =================
     symbols = get_top_volatile_symbols(limit=200)
     active_symbols = get_active_usdt_symbols()
 
-    print(f"🔢 Symbols to check: {len(symbols)}", flush=True)
-
     # ================= SIGNAL SCAN =================
     for symbol in symbols:
-        if DEBUG:
-            print(f"\n🔎 Checking symbol: {symbol}", flush=True)
-
-        if (
-            symbol in used_symbols
-            or not symbol.endswith("USDT")
-            or symbol not in active_symbols
-        ):
-            if DEBUG:
-                print(f"❌ {symbol} skipped: not active/duplicate", flush=True)
+        if symbol in used_symbols or not symbol.endswith("USDT") or symbol not in active_symbols:
             continue
 
         if is_blacklisted(symbol):
-            if DEBUG:
-                print(
-                    f"⛔ {symbol} blacklisted — {get_blacklist_reason(symbol)}",
-                    flush=True,
-                )
             continue
 
         df = get_data(symbol)
         if df is None or len(df) < 50:
-            if DEBUG:
-                print(f"❌ {symbol} skipped: no or low data", flush=True)
             continue
 
         result = is_strong_signal(
@@ -104,20 +83,14 @@ def send_signals(force: bool = False):
         )
 
         if not result:
-            if DEBUG:
-                print(f"❌ {symbol} rejected by signal logic", flush=True)
             continue
 
-        # ===== ACCEPTED SIGNAL =====
         signal = result["type"]
         entry = result["entry"]
         score = result["score"]
         rsi = result["rsi"]
         ma10 = result["ma10"]
         ma30 = result["ma30"]
-
-        if DEBUG:
-            print(f"🔥 {symbol} ACCEPTED | {signal} score={score}", flush=True)
 
         atr = AverageTrueRange(
             df["high"], df["low"], df["close"], window=14
@@ -126,11 +99,11 @@ def send_signals(force: bool = False):
         if signal == "LONG":
             tp1 = round(entry + atr * 1.5, 4)
             tp2 = round(entry + atr * 2.5, 4)
-            sl = round(entry - atr * 1.0, 4)
+            sl = round(entry - atr, 4)
         else:
             tp1 = round(entry - atr * 1.5, 4)
             tp2 = round(entry - atr * 2.5, 4)
-            sl = round(entry + atr * 1.0, 4)
+            sl = round(entry + atr, 4)
 
         emoji = "🔥🔥🔥" if score >= 6 else "🔥"
 
@@ -146,59 +119,28 @@ def send_signals(force: bool = False):
             f"SL: {sl}"
         )
 
-        messages.append({
-            "symbol": symbol,
-            "score": score,
-            "message": message,
-            "data": {
-                "type": signal,
-                "entry": entry,
-                "tp1": tp1,
-                "tp2": tp2,
-                "sl": sl,
-            },
-        })
-
+        messages.append(message)
         used_symbols.add(symbol)
 
         if score > top_score:
             top_score = score
             top_pick = symbol
 
-        if len(messages) >= 8:
+        if len(messages) >= 5:
             break
 
     # ================= TELEGRAM SEND =================
     if not messages:
-        try:
-            bot.send_message(
-                chat_id=CHAT_ID,
-                text="⏳ This hour no signals were generated. Bot is running.",
-            )
-            print("✅ Telegram message sent", flush=True)
-        except Exception as e:
-            print(f"❌ Telegram send error: {e}", flush=True)
-
-        return
-
-    for item in messages:
-        msg = item["message"]
-        if item["symbol"] == top_pick:
-            msg = "🔝 TOP PICK\n\n" + msg
-
         bot.send_message(
             chat_id=CHAT_ID,
-            text=msg,
-            parse_mode="Markdown",
+            text="❌ No signals found. Bot scan completed.",
         )
+        return
 
-        log_sent_signal(
-            symbol=item["symbol"],
-            data=item["data"],
-            result="pending",
-        )
+    for msg in messages:
+        bot.send_message(chat_id=CHAT_ID, text=msg)
 
 
 # ================= ENTRY POINT =================
 if __name__ == "__main__":
-    send_signals(force=True)  # ⬅️ ԹԵՍՏԻ ՀԱՄԱՐ
+    send_signals(force=True)
