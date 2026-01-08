@@ -29,8 +29,8 @@ def send_signals(force: bool = False):
     current_minute = now.minute
 
     # ⏰ STRICT :02 FILTER
-    if not force and current_minute not in [2, 3]:
-        print("⏳ Not :02 minute, skipping scan", flush=True)
+    if not force and current_minute not in [0, 1]:
+        print("⏳ Not :00 minute, skipping scan", flush=True)
         return
 
     messages = []
