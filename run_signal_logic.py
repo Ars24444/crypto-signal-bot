@@ -54,6 +54,8 @@ CHAT_ID = 5398864436
 
 DEBUG = True
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
+MAX_SIGNALS_PER_RUN = 3
+signals_sent = 0
 
 
 # ================= MAIN SIGNAL FUNCTION =================
@@ -73,6 +75,7 @@ def send_signals(force: bool = False):
 
     messages = []
     used_symbols = set()
+    almost_signals = []
 
     # ================= BTC DATA CHECK =================
     btc_df = get_data_15m("BTCUSDT")
@@ -130,10 +133,15 @@ def send_signals(force: bool = False):
             volatility_ok=atr_ok
         )
 
-        if score < 8:
-            if DEBUG:
-                print(f"{symbol} REJECTED | SCORE {score} | {reasons}", flush=True)
-            continue
+         if score < 8:
+             if score >= 6:
+                 almost_signals.append(
+                     f"{symbol} | score={score} | missing: {', '.join(reasons)}"
+                 )
+
+             if DEBUG:
+                 print(f"{symbol} REJECTED | SCORE {score} | {reasons}", flush=True)
+             continue
 
         # ===== SIGNAL DIRECTION =====
         signal = "LONG" if trend_15m_ok else "SHORT"
@@ -163,6 +171,9 @@ def send_signals(force: bool = False):
             tp1 = round(entry * 0.975, 4)
             tp2 = round(entry * 0.95, 4)
             sl = round(entry * 1.01, 4)
+            tp1_pct = "50%"
+            tp2_pct = "50%"
+            be_note = "After TP1 → SL moves to Entry (BE)"
 
         message = (
             f"🔥🔥 A+ SIGNAL (1H)\n\n"
@@ -170,24 +181,32 @@ def send_signals(force: bool = False):
             f"Direction: {signal}\n"
             f"Score: {score}/10\n\n"
             f"Entry: {entry:.4f}\n"
-            f"TP1: {tp1}\n"
-            f"TP2: {tp2}\n"
-            f"SL: {sl}\n\n"
+            f"TP1: {tp1} ({tp1_pct})\n"
+            f"TP2: {tp2} ({tp2_pct})\n"
+            f"SL: {sl}\n"
+            f"{be_note}\n\n"
             f"Reason:\n- " + "\n- ".join(reasons)
         )
 
         messages.append(message)
         used_symbols.add(symbol)
+        signals_sent += 1
 
-        if len(messages) >= 5:
+        if signals_sent >= MAX_SIGNALS_PER_RUN:
             break
 
     # ================= TELEGRAM SEND =================
     if not messages:
-        bot.send_message(
-            chat_id=CHAT_ID,
-            text="❌ No A+ signals found. BTC or market conditions not ideal.",
-        )
+        text = "❌ No A+ signals found.\n\n"
+
+        if almost_signals:
+            text += "🟡 Almost signals (top 5):\n"
+            for s in almost_signals[:5]:
+                text += f"- {s}\n"
+        else:
+            text += "Market conditions not ideal."
+
+        bot.send_message(chat_id=CHAT_ID, text=text)
         return
 
     for msg in messages:
