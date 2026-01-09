@@ -9,6 +9,7 @@ from data_fetcher import get_data, get_data_15m, get_active_usdt_symbols
 from get_top_symbols import get_top_volatile_symbols
 from blacklist_manager import is_blacklisted
 from score_engine import calculate_signal_score
+from btc_filter import btc_allows_trade
 
 
 # ================= CONFIG =================
@@ -37,14 +38,11 @@ def send_signals(force: bool = False):
     messages = []
     used_symbols = set()
 
-    # ================= BTC CONTEXT (basic – Step 2-ը հետո կխստացնենք) =================
+    # ================= BTC DATA CHECK =================
     btc_df = get_data_15m("BTCUSDT")
-    if btc_df is None or len(btc_df) < 40:
+    if btc_df is None or len(btc_df) < 50:
         bot.send_message(chat_id=CHAT_ID, text="⚠️ BTC data unavailable")
         return
-
-    btc_close = btc_df["close"]
-    btc_rsi = RSIIndicator(btc_close, window=14).rsi().iloc[-1]
 
     # ================= SYMBOL LIST =================
     symbols = get_top_volatile_symbols(limit=200)
@@ -98,11 +96,20 @@ def send_signals(force: bool = False):
 
         if score < 8:
             if DEBUG:
-                print(f"{symbol} REJECTED | score={score} | {reasons}", flush=True)
+                print(f"{symbol} REJECTED | SCORE {score} | {reasons}", flush=True)
             continue
 
-        # ===== SIGNAL =====
+        # ===== SIGNAL DIRECTION =====
         signal = "LONG" if trend_15m_ok else "SHORT"
+
+        # ===== BTC MASTER FILTER =====
+        btc_ok, btc_reason = btc_allows_trade(signal)
+        if not btc_ok:
+            if DEBUG:
+                print(f"{symbol} REJECTED | BTC FILTER | {btc_reason}", flush=True)
+            continue
+
+        # ===== ENTRY & TARGETS =====
         entry = close.iloc[-1]
 
         if signal == "LONG":
@@ -136,7 +143,7 @@ def send_signals(force: bool = False):
     if not messages:
         bot.send_message(
             chat_id=CHAT_ID,
-            text="❌ No A+ signals found. Market conditions not ideal.",
+            text="❌ No A+ signals found. BTC or market conditions not ideal.",
         )
         return
 
