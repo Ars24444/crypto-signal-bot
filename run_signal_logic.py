@@ -7,9 +7,8 @@ from ta.volatility import AverageTrueRange
 
 from data_fetcher import get_data, get_data_15m, get_active_usdt_symbols
 from get_top_symbols import get_top_volatile_symbols
-from signal_logger import log_sent_signal
-from blacklist_manager import is_blacklisted, get_blacklist_reason
-from utils import is_strong_signal
+from blacklist_manager import is_blacklisted
+from score_engine import calculate_signal_score
 
 
 # ================= CONFIG =================
@@ -17,7 +16,6 @@ TELEGRAM_BOT_TOKEN = "8388716002:AAGyOsF_t3ciOtjugKNQX2e5t7R3IxLWte4"
 CHAT_ID = 5398864436
 
 DEBUG = True
-
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 
@@ -25,7 +23,7 @@ bot = Bot(token=TELEGRAM_BOT_TOKEN)
 def send_signals(force: bool = False):
     now = datetime.utcnow()
 
-    # ✅ TELEGRAM TEST MESSAGE (ԱՄԵՆԱԿԱՐԵՎՈՐԸ)
+    # Telegram alive message
     try:
         bot.send_message(
             chat_id=CHAT_ID,
@@ -38,26 +36,15 @@ def send_signals(force: bool = False):
 
     messages = []
     used_symbols = set()
-    top_score = -1
-    top_pick = None
 
-    # ================= BTC FILTER =================
-    try:
-        btc_df = get_data_15m("BTCUSDT")
-        if btc_df is None or len(btc_df) < 40:
-            bot.send_message(chat_id=CHAT_ID, text="⚠️ BTC data unavailable")
-            return
-
-        btc_close = btc_df["close"]
-        btc_rsi = RSIIndicator(btc_close, window=14).rsi().iloc[-1]
-
-        btc_last = btc_close.iloc[-1]
-        btc_prev = btc_close.iloc[-2]
-        btc_change_pct = (btc_last - btc_prev) / btc_prev * 100
-
-    except Exception as e:
-        bot.send_message(chat_id=CHAT_ID, text=f"❌ BTC load error: {e}")
+    # ================= BTC CONTEXT (basic – Step 2-ը հետո կխստացնենք) =================
+    btc_df = get_data_15m("BTCUSDT")
+    if btc_df is None or len(btc_df) < 40:
+        bot.send_message(chat_id=CHAT_ID, text="⚠️ BTC data unavailable")
         return
+
+    btc_close = btc_df["close"]
+    btc_rsi = RSIIndicator(btc_close, window=14).rsi().iloc[-1]
 
     # ================= SYMBOL LIST =================
     symbols = get_top_volatile_symbols(limit=200)
@@ -75,56 +62,72 @@ def send_signals(force: bool = False):
         if df is None or len(df) < 50:
             continue
 
-        result = is_strong_signal(
-            df,
-            btc_change_pct=btc_change_pct,
-            btc_rsi=btc_rsi,
-            symbol=symbol,
+        close = df["close"]
+        high = df["high"]
+        low = df["low"]
+        volume = df["volume"]
+
+        # ===== Indicators =====
+        rsi_5m = RSIIndicator(close, window=14).rsi().iloc[-1]
+
+        ma10 = close.rolling(10).mean().iloc[-1]
+        ma30 = close.rolling(30).mean().iloc[-1]
+
+        trend_15m_ok = ma10 > ma30
+        ma_structure_ok = ma10 > ma30
+
+        volume_ok = volume.iloc[-1] > volume.rolling(20).mean().iloc[-1] * 1.3
+
+        atr_series = AverageTrueRange(high, low, close, window=14).average_true_range()
+        atr = atr_series.iloc[-1]
+        atr_ma = atr_series.rolling(20).mean().iloc[-1]
+        atr_ok = atr < atr_ma * 1.5
+
+        # simple pullback (Step 3-ում կխստացնենք)
+        pullback_confirmed = close.iloc[-1] > ma10 and close.iloc[-2] < ma10
+
+        # ===== SCORE ENGINE =====
+        score, reasons = calculate_signal_score(
+            trend_15m=trend_15m_ok,
+            pullback_5m=pullback_confirmed,
+            volume_ok=volume_ok,
+            rsi_5m=rsi_5m,
+            ma_clean=ma_structure_ok,
+            volatility_ok=atr_ok
         )
 
-        if not result:
+        if score < 8:
+            if DEBUG:
+                print(f"{symbol} REJECTED | score={score} | {reasons}", flush=True)
             continue
 
-        signal = result["type"]
-        entry = result["entry"]
-        score = result["score"]
-        rsi = result["rsi"]
-        ma10 = result["ma10"]
-        ma30 = result["ma30"]
-
-        atr = AverageTrueRange(
-            df["high"], df["low"], df["close"], window=14
-        ).average_true_range().iloc[-1]
+        # ===== SIGNAL =====
+        signal = "LONG" if trend_15m_ok else "SHORT"
+        entry = close.iloc[-1]
 
         if signal == "LONG":
-            tp1 = round(entry + atr * 1.5, 4)
-            tp2 = round(entry + atr * 2.5, 4)
-            sl = round(entry - atr, 4)
+            tp1 = round(entry * 1.025, 4)
+            tp2 = round(entry * 1.05, 4)
+            sl = round(entry * 0.99, 4)
         else:
-            tp1 = round(entry - atr * 1.5, 4)
-            tp2 = round(entry - atr * 2.5, 4)
-            sl = round(entry + atr, 4)
-
-        emoji = "🔥🔥🔥" if score >= 6 else "🔥"
+            tp1 = round(entry * 0.975, 4)
+            tp2 = round(entry * 0.95, 4)
+            sl = round(entry * 1.01, 4)
 
         message = (
-            f"{emoji} {symbol} (1H)\n\n"
-            f"Signal: {signal}\n"
-            f"Score: {score}/7\n"
-            f"RSI: {rsi:.2f}\n"
-            f"MA10: {ma10:.4f} | MA30: {ma30:.4f}\n\n"
+            f"🔥🔥 A+ SIGNAL (1H)\n\n"
+            f"{symbol}\n"
+            f"Direction: {signal}\n"
+            f"Score: {score}/10\n\n"
             f"Entry: {entry:.4f}\n"
             f"TP1: {tp1}\n"
             f"TP2: {tp2}\n"
-            f"SL: {sl}"
+            f"SL: {sl}\n\n"
+            f"Reason:\n- " + "\n- ".join(reasons)
         )
 
         messages.append(message)
         used_symbols.add(symbol)
-
-        if score > top_score:
-            top_score = score
-            top_pick = symbol
 
         if len(messages) >= 5:
             break
@@ -133,14 +136,9 @@ def send_signals(force: bool = False):
     if not messages:
         bot.send_message(
             chat_id=CHAT_ID,
-            text="❌ No signals found. Bot scan completed.",
+            text="❌ No A+ signals found. Market conditions not ideal.",
         )
         return
 
     for msg in messages:
         bot.send_message(chat_id=CHAT_ID, text=msg)
-
-
-# ================= ENTRY POINT =================
-if __name__ == "__main__":
-    send_signals(force=True)
