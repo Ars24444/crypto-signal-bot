@@ -11,6 +11,42 @@ from blacklist_manager import is_blacklisted
 from score_engine import calculate_signal_score
 from btc_filter import btc_allows_trade
 
+def pullback_entry_ok(df, direction):
+    close = df["close"]
+    high = df["high"]
+    low = df["low"]
+
+    ma20 = close.ewm(span=20).mean()
+
+    last_close = close.iloc[-1]
+    prev_close = close.iloc[-2]
+
+    last_low = low.iloc[-1]
+    last_high = high.iloc[-1]
+
+    rsi = RSIIndicator(close, window=14).rsi().iloc[-1]
+
+    lower_wick = last_close - last_low
+    upper_wick = last_high - last_close
+
+    if direction == "LONG":
+        return (
+            last_close > ma20.iloc[-1] and
+            prev_close < ma20.iloc[-1] and
+            lower_wick > upper_wick and
+            40 <= rsi <= 60
+        )
+
+    if direction == "SHORT":
+        return (
+            last_close < ma20.iloc[-1] and
+            prev_close > ma20.iloc[-1] and
+            upper_wick > lower_wick and
+            40 <= rsi <= 60
+        )
+
+    return False
+
 
 # ================= CONFIG =================
 TELEGRAM_BOT_TOKEN = "8388716002:AAGyOsF_t3ciOtjugKNQX2e5t7R3IxLWte4"
@@ -107,6 +143,13 @@ def send_signals(force: bool = False):
         if not btc_ok:
             if DEBUG:
                 print(f"{symbol} REJECTED | BTC FILTER | {btc_reason}", flush=True)
+            continue
+        # ===== ENTRY PATTERN FILTER =====
+        entry_ok = pullback_entry_ok(df, signal)
+
+        if not entry_ok:
+            if DEBUG:
+                print(f"{symbol} REJECTED | ENTRY PATTERN", flush=True)
             continue
 
         # ===== ENTRY & TARGETS =====
