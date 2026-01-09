@@ -133,15 +133,15 @@ def send_signals(force: bool = False):
             volatility_ok=atr_ok
         )
 
-         if score < 8:
-             if score >= 6:
-                 almost_signals.append(
-                     f"{symbol} | score={score} | missing: {', '.join(reasons)}"
-                 )
+        if score < 8:
+            if score >= 6:
+                almost_signals.append(
+                    f"{symbol} | score={score} | missing: {', '.join(reasons)}"
+                )
 
-             if DEBUG:
-                 print(f"{symbol} REJECTED | SCORE {score} | {reasons}", flush=True)
-             continue
+            if DEBUG:
+                print(f"{symbol} REJECTED | SCORE {score} | {reasons}", flush=True)
+            continue
 
         # ===== SIGNAL DIRECTION =====
         signal = "LONG" if trend_15m_ok else "SHORT"
