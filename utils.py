@@ -2,17 +2,16 @@ import numpy as np
 from ta.trend import SMAIndicator
 from ta.momentum import RSIIndicator
 
-DEBUG = True  # ⬅️ production-ում կարող ես դարձնել False
+DEBUG = True  # production-ում կարող ես դարձնել False
 
 
 def has_minimum_long_short_trades(symbol):
-    try:
-        return True
-    except:
-        return True
+    # placeholder, հետո կարող ես իրական logic դնել
+    return True
 
 
 def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
+    # ================= BASIC CHECKS =================
     if df is None or len(df) < 40:
         if DEBUG:
             print(f"❌ {symbol} rejected: not enough candles", flush=True)
@@ -55,6 +54,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
             )
         return None
 
+    # ================= SCORING =================
     def score_long():
         score = 0
 
@@ -119,6 +119,15 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     MIN_SCORE = 5
     MIN_DIFF = 1
 
+    reasons = []
+
+    if long_score < MIN_SCORE:
+        reasons.append(f"LONG score too low ({long_score})")
+
+    if short_score < MIN_SCORE:
+        reasons.append(f"SHORT score too low ({short_score})")
+
+    # --- both too weak ---
     if long_score < MIN_SCORE and short_score < MIN_SCORE:
         if DEBUG:
             print(
@@ -126,8 +135,14 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
                 f"(LONG={long_score}, SHORT={short_score})",
                 flush=True,
             )
-        return None
+        return {
+            "type": "NONE",
+            "long_score": long_score,
+            "short_score": short_score,
+            "reasons": reasons,
+        }
 
+    # --- accept LONG ---
     if long_score >= MIN_SCORE and long_score > short_score + MIN_DIFF:
         if DEBUG:
             print(f"🔥 {symbol} ACCEPTED: LONG score={long_score}", flush=True)
@@ -140,6 +155,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
             "score": long_score,
         }
 
+    # --- accept SHORT ---
     if short_score >= MIN_SCORE and short_score > long_score + MIN_DIFF:
         if DEBUG:
             print(f"🔥 {symbol} ACCEPTED: SHORT score={short_score}", flush=True)
@@ -152,6 +168,9 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
             "score": short_score,
         }
 
+    # --- conflict ---
+    reasons.append("Score conflict between LONG and SHORT")
+
     if DEBUG:
         print(
             f"❌ {symbol} rejected: score conflict "
@@ -159,4 +178,9 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
             flush=True,
         )
 
-    return None
+    return {
+        "type": "NONE",
+        "long_score": long_score,
+        "short_score": short_score,
+        "reasons": reasons,
+    }
