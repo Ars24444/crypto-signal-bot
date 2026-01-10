@@ -6,7 +6,7 @@ DEBUG = True  # production-ում կարող ես դարձնել False
 
 
 def has_minimum_long_short_trades(symbol):
-    # placeholder, հետո կարող ես իրական logic դնել
+    # placeholder — հետագայում կարող ես իրական logic ավելացնել
     return True
 
 
@@ -58,19 +58,23 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     def score_long():
         score = 0
 
+        # Trend
         if last_close > ma10 > ma30:
             score += 2
         elif last_close > ma30:
             score += 1
 
-        if 35 <= rsi <= 45:
+        # RSI (թուլացված, բայց անվտանգ)
+        if 35 <= rsi <= 50:
             score += 2
-        elif 30 <= rsi < 35 or 45 < rsi <= 50:
+        elif 30 <= rsi < 35 or 50 < rsi <= 55:
             score += 1
 
+        # Candles
         if bullish_candles:
             score += 1
 
+        # Volume
         if avg_volume > 0:
             if current_volume >= avg_volume * 1.15:
                 score += 2
@@ -82,19 +86,23 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     def score_short():
         score = 0
 
+        # Trend
         if last_close < ma10 < ma30:
             score += 2
         elif last_close < ma30:
             score += 1
 
-        if 55 <= rsi <= 65:
+        # RSI (թուլացված, բայց անվտանգ)
+        if 50 <= rsi <= 65:
             score += 2
-        elif 50 <= rsi < 55 or 65 < rsi <= 70:
+        elif 45 <= rsi < 50 or 65 < rsi <= 70:
             score += 1
 
+        # Candles
         if bearish_candles:
             score += 1
 
+        # Volume
         if avg_volume > 0:
             if current_volume >= avg_volume * 1.15:
                 score += 2
@@ -127,7 +135,7 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
     if short_score < MIN_SCORE:
         reasons.append(f"SHORT score too low ({short_score})")
 
-    # --- both too weak ---
+    # --- both weak ---
     if long_score < MIN_SCORE and short_score < MIN_SCORE:
         if DEBUG:
             print(
@@ -148,10 +156,10 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
             print(f"🔥 {symbol} ACCEPTED: LONG score={long_score}", flush=True)
         return {
             "type": "LONG",
+            "entry": last_close,
             "rsi": rsi,
             "ma10": ma10,
             "ma30": ma30,
-            "entry": last_close,
             "score": long_score,
         }
 
@@ -161,10 +169,10 @@ def is_strong_signal(df, btc_change_pct=0, btc_rsi=50, symbol=None):
             print(f"🔥 {symbol} ACCEPTED: SHORT score={short_score}", flush=True)
         return {
             "type": "SHORT",
+            "entry": last_close,
             "rsi": rsi,
             "ma10": ma10,
             "ma30": ma30,
-            "entry": last_close,
             "score": short_score,
         }
 
